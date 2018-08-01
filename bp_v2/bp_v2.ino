@@ -41,6 +41,10 @@ void setup() {
 //    while (1);
   }
   else Serial.println("SD initialisation done.");
+  delay(50);
+  
+  if (Serial2.available() > 0) Serial.println(F("GPS communication enabled."));
+  else Serial.println(F("GPS not available."));
 
   for (int i = 0; i < 7; i++) ref[i] = 0.0;
   Serial.println(F("Calibrating accelerometer..."));
@@ -75,9 +79,6 @@ void setup() {
     Serial.print( "workmode set to "); Serial.println( workmode == SDS021_REPORTMODE ? "Reportmode" : "Querymode" );
   }
   ///////////////Nova init end
-  
-  if (Serial2.available() > 0) Serial.println(F("GPS communication enabled."));
-  else Serial.println(F("GPS not available."));
 
   // open the file. note that only one file can be open at a time,
   // so you have to close this one before opening another.
