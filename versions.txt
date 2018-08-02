@@ -1,3 +1,4 @@
 v0	based on SDS011_v3: GPS, PM10 logging to SD card and via Serial (for possible BT forwarding)
 v1	added i2c accerlerometer support
-v1	no missed PM10 readings anymore, new column format
+v2	no missed PM10 readings anymore, new column format
+v3	added analog read in of battery voltage to blink an LED if low

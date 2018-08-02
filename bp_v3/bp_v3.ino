@@ -6,6 +6,8 @@
 
 #define LED PB12
 #define CSPIN PA4
+#define VINPIN PA0
+#define LED1 PB1
 
 // The TinyGPS++ object
 TinyGPSPlus gps;
@@ -16,7 +18,7 @@ double ref[7], acc[7]; //AcX,AcY,AcZ,Tmp,GyX,GyY,GyZ
 int16_t AcX,AcY,AcZ,Tmp,GyX,GyY,GyZ;
 uint32_t mtime;
 
-float p10, p25;
+float p10, p25, vin = 0;
 bool status;
 int counter = 0, i_acc = 0, n_cali = 2000;
 SDS021 nova;
@@ -26,6 +28,8 @@ int ret, gpsUpdated = 0;
 void setup() {
   pinMode(LED, OUTPUT);
   digitalWrite(LED, HIGH);
+  pinMode(LED1, OUTPUT);
+  digitalWrite(LED1, HIGH);
 
   nova.begin(&Serial1);
   nova.setDebug ( false );
@@ -34,8 +38,12 @@ void setup() {
   Serial.begin(9600);
   Serial2.begin(9600); // GPS baudrate is 9600
   delay(50);
-  Serial.println("Initialising SD card...");
 
+  if (!batteryOk()) Serial.print(F("Battery voltage is low: "));
+  else Serial.print(F("Battery voltage is ok: "));
+  Serial.println(vin);
+
+  Serial.println("Initialising SD card...");
   if (!SD.begin(CSPIN)) {
     Serial.println("SD initialisation failed!");
 //    while (1);
@@ -124,8 +132,9 @@ void loop() {
   readAcc();
   while (Serial2.available() > 0) {
     gps.encode(Serial2.read());
-    if (millis() - mtime > 3000) {      
+    if (millis() - mtime > 3000) {   
       digitalWrite(LED, LOW);
+      batteryOk();   
       while (!nova.queryData(&p10, &p25)) {; // datasheet advises 3 seconds as minimum poll time.
         delay(50);
       }
@@ -150,7 +159,8 @@ void loop() {
         for (int i = 0; i < 7; i++) {
           myFile.print(","); myFile.print(acc[i]);
         }
-        myFile.print(","); myFile.println(i_acc);
+        myFile.print(","); myFile.print(i_acc);
+        myFile.print(","); myFile.println(vin);
         myFile.close();
       }
       digitalWrite(LED, HIGH);
@@ -169,7 +179,8 @@ void loop() {
       for (int i = 0; i < 7; i++) {
         Serial.print(","); Serial.print(acc[i]);
       }
-      Serial.print(","); Serial.println(i_acc);
+      Serial.print(","); Serial.print(i_acc);
+      Serial.print(","); Serial.println(vin);
   
       mtime = millis();
       resetAcc();
@@ -312,5 +323,15 @@ int getNextName() { // check filenames on SD and increment by one
     entry.close();
   }
   return out;
+}
+
+boolean batteryOk() {
+  vin = 3.3*analogRead(VINPIN)/4095.0;
+  if (vin < 3.2) {
+    analogWrite(LED1, LOW);
+    return false;
+  }
+  else analogWrite(LED1, HIGH);
+  return true;
 }
 
