@@ -29,7 +29,7 @@ void setup() {
   pinMode(LED, OUTPUT);
   digitalWrite(LED, HIGH);
   pinMode(LED1, OUTPUT);
-  digitalWrite(LED1, HIGH);
+  digitalWrite(LED1, LOW);
 
   nova.begin(&Serial1);
   nova.setDebug ( false );
@@ -95,7 +95,7 @@ void setup() {
 
   // if the file opened okay, write to it:
   if (myFile) {
-    myFile.println(F("Counter,Latitude,Longitude,PM10,PM2.5,gpsUpdated,Speed,Altitude,Satellites,Date,Time,Millis,AccX,AccY,AccZ,Temperature,GyroX,GyroY,GyroZ,nAcc"));
+    myFile.println(F("Counter,Latitude,Longitude,PM10,PM2.5,gpsUpdated,Speed,Altitude,Satellites,Date,Time,Millis,AccX,AccY,AccZ,Temperature,GyroX,GyroY,GyroZ,nAcc,BatteryVIN"));
     myFile.print("Reference");
     myFile.print(","); myFile.print(filename);
     for (int i=0; i<9; i++) { // no reference GPS and PM10/2.5 at this point
@@ -113,7 +113,7 @@ void setup() {
     Serial.println("Error while writing SD");
   }
   
-  Serial.println(F("Counter,Latitude,Longitude,PM10,PM2.5,gpsUpdated,Speed,Altitude,Satellites,Date,Time,Millis,AccX,AccY,AccZ,Temperature,GyroX,GyroY,GyroZ,nAcc"));
+  Serial.println(F("Counter,Latitude,Longitude,PM10,PM2.5,gpsUpdated,Speed,Altitude,Satellites,Date,Time,Millis,AccX,AccY,AccZ,Temperature,GyroX,GyroY,GyroZ,nAcc,BatteryVIN"));
   Serial.print("Reference");
   Serial.print(","); Serial.print(filename);
   for (int i=0; i<9; i++) { // no reference GPS and PM10/2.5 at this point
@@ -325,13 +325,13 @@ int getNextName() { // check filenames on SD and increment by one
   return out;
 }
 
-boolean batteryOk() {
-  vin = 3.3*analogRead(VINPIN)/4095.0;
-  if (vin < 3.2) {
-    analogWrite(LED1, LOW);
+boolean batteryOk() { // analog input can measure between 0 and supply voltage (3.3V)
+  vin = 2*3.3*analogRead(VINPIN)/4095.0; // calculation based on 50:50 voltage divider to measure battery voltage between 0 and 6.6V
+  if (vin < 3.5) {
+    digitalWrite(LED1, HIGH);
     return false;
   }
-  else analogWrite(LED1, HIGH);
+  else digitalWrite(LED1, LOW);
   return true;
 }
 
