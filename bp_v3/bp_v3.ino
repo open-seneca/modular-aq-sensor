@@ -140,7 +140,6 @@ void loop() {
       }
       finishAcc();
       if (gps.location.isUpdated()) gpsUpdated = 1;
-      mtime = millis();
       
       myFile = SD.open(String(filename)+".csv", FILE_WRITE);
       if (myFile) {
