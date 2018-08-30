@@ -1,8 +1,11 @@
 # CambikeSensor
 
-## A cyclist’s mobile sensor hub for big data citizen science.
+## A cyclistâ€™s mobile sensor hub for big data citizen science.
 
-If you want to build our sensor hub based on the Black Pill board, you need to flash some code using the Arduino IDE. 
+Please refer to our wiki page to learn about the assembly of the hardware to build a CamBike sensor youself:
+wiki.cambikesensor.net
+
+If you have already built your kit and want to flash the code to the Black Pill board, you are exactly right here. 
 Here is how:
 
 a) Wiring and onboard jumpers:
@@ -22,3 +25,5 @@ c) To execute the code:
 - after flashing code should run
 - plug both header pins on low (B1- should be low already if your followed the steps correctly, move other jumper to B0-)
 - the board will now keep its flash memory, every reset will restart execution
+
+We are an open-source project, please feel free to extend and improve our code, just post a commit!
