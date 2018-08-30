@@ -5,6 +5,8 @@
 Please refer to our wiki page to learn about the assembly of the hardware to build a CamBike sensor youself:
 http://wiki.cambikesensor.net
 
+![alt text](https://github.com/sh969/CambikeSensor/edit/master/photo.png)
+
 If you have already built your kit and want to flash the code to the Black Pill board, you are exactly right here. 
 Here is how:
 
