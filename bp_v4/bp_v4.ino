@@ -7,7 +7,9 @@
 #define LED PB12
 #define CSPIN PA4
 #define VINPIN PA0
-#define LED1 PB1
+#define RED PB1 // former LED1
+#define GREEN PB0
+#define BLUE PA1
 
 // The TinyGPS++ object
 TinyGPSPlus gps;
@@ -28,8 +30,10 @@ int ret, gpsUpdated = 0;
 void setup() {
   pinMode(LED, OUTPUT);
   digitalWrite(LED, HIGH);
-  pinMode(LED1, OUTPUT);
-  digitalWrite(LED1, LOW);
+  pinMode(GREEN, OUTPUT);
+  digitalWrite(GREEN, HIGH);
+  pinMode(RED, OUTPUT);
+  digitalWrite(RED, LOW);
 
   nova.begin(&Serial1);
   nova.setDebug ( false );
@@ -327,10 +331,9 @@ int getNextName() { // check filenames on SD and increment by one
 boolean batteryOk() { // analog input can measure between 0 and supply voltage (3.3V)
   vin = 2*3.3*analogRead(VINPIN)/4095.0; // calculation based on 50:50 voltage divider to measure battery voltage between 0 and 6.6V
   if (vin < 3.5) {
-    digitalWrite(LED1, HIGH);
+    digitalWrite(RED, HIGH);
     return false;
   }
-  else digitalWrite(LED1, LOW);
+  else digitalWrite(RED, LOW);
   return true;
 }
-
