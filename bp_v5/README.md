@@ -1,0 +1,1 @@
+﻿Important: bp_v5 is our new Kenya prototype and currently not compatible with the old PCB on which this GihHub documentation is based on. This is a work in progress.
