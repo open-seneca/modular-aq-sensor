@@ -1,6 +1,6 @@
-﻿# bp_v4 is our Team Challenge version (supporting the accelerometer). Flash this code if you were following the GitHub documentation.
+﻿## bp_v4 is our Team Challenge version (supporting the accelerometer). Flash this code if you were following the GitHub documentation.
 
-## Features
+### Features
 
 Microcontroller:
 STM32F103C8T6, also known as STM32 Black Pill.
