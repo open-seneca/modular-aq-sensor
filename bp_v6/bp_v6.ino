@@ -16,7 +16,8 @@
 #define SHT_addr 0x44
 #define SPS30_addr 0x69
 
-String code_version = "BlackPill_v5";
+String code_version = "BlackPill_v6";
+String header = "Counter,Latitude,Longitude,PM10,PM2.5,gpsUpdated,Speed,Altitude,Satellites,Date,Time,Millis,PM4.0,PM1.0,PM0.5[#/cm3],Temperature,Humidity,PM10[#/cm3],PM2.5[#/cm3],TypicalParticleSize,BatteryVIN,PM1.0[#/cm3],PM4.0[#/cm3]";
 
 // PM sensor SPS30
 float mc_1p0, mc_2p5, mc_4p0, mc_10p0, nc_0p5, nc_1p0, nc_2p5, nc_4p0, nc_10p0, typical_particle_size = 0;
@@ -24,11 +25,12 @@ byte w1, w2,w3;
 byte ND[60];
 long tmp;
 float measure[10];
+String sps30_sn;
 
 // The TinyGPS++ object
 TinyGPSPlus gps;
 File myFile;
-int filename;
+String filename;
 uint32_t mtime;
 
 // Humidity and temperature sensor
@@ -38,18 +40,28 @@ Adafruit_SHT31 sht31 = Adafruit_SHT31();
 String imei, cnum, payload = "";
 
 float vin, temperature, humidity = 0;
-bool status;
-uint8_t fwdate[3], workmode, asleep;
-int counter=0,ret, gpsUpdated = 0;
+int counter=0, gpsUpdated = 0;
 
 void setup() {
     // set up LEDs and turn on
     pinMode(LED, OUTPUT);
     digitalWrite(LED, HIGH);
-    pinMode(GREEN, OUTPUT);
-    digitalWrite(GREEN, HIGH);
-    pinMode(RED, OUTPUT);
-    digitalWrite(RED, LOW);
+    // flash the PCB LED
+    // does not seem to work yet
+//    pinMode(GREEN, OUTPUT);
+//    digitalWrite(GREEN, HIGH);
+//    pinMode(RED, OUTPUT);
+//    digitalWrite(RED, LOW);
+//    pinMode(BLUE, OUTPUT);
+//    for (int i=0; i<10; i++) {
+//      digitalWrite(BLUE, LOW);
+//      digitalWrite(GREEN, HIGH);
+//      delay(200);    
+//      digitalWrite(BLUE, HIGH);
+//      digitalWrite(GREEN, LOW);
+//      delay(200);
+//    }
+    
 
     // Enabling internal pull ups resistors for I2C communication
     pinMode(SDA,INPUT_PULLUP);
@@ -70,59 +82,58 @@ void setup() {
     Serial.println(vin);*/
  
     // initialise SD card
-    Serial.println(F("Initialising SD card..."));
-    if (!SD.begin(CSPIN)) {
-        Serial.println(F("SD initialisation failed!"));
-    }
-    else {
-        Serial.println(F("SD initialisation done."));
-    }
-
-    // print whether GPS data communication is enabled or not
-    if (Serial2.available() > 0) {
-        Serial.println(F("GPS communication enabled."));
-    } else {
-        Serial.println(F("GPS not available."));
-    }
-
-    // Start i2c communication
-    Wire.begin();
-   
-   // Testing humidity sensor
-   if (! sht31.begin(0x44)) Serial.println(F("Couldn't find SHT31"));  // Set to 0x45 for alternate i2c addr
-   
-   //Testing PM sensor
-    SPS30_start_measurement();
-    SPS30_cleaning();
- 
-    // open the file. Note that only one file can be open at a time,so you have to close this one before opening another.
-    filename = getNextName();
-    digitalWrite(LED, LOW);
-    myFile = SD.open(String(filename) + ".csv", FILE_WRITE);
-
-    // if the file opened okay, write to it:
-    if (myFile) {
-        myFile.println(F("Version of code: BlackPill_v5, including GPS, GSM, SPS30, SHT31, SD card"));
-        myFile.println(F("Counter,Latitude,Longitude,mc_10p0,mc_2p5,mc_4p0,mc_1p0,nc_0p5,nc_1p0,nc_2p5,nc_4p0,nc_10p0,ParticleSize,Temperature,Humidity,gpsUpdated,Satellites,GPS_speed,Date,Time,Millis,BatteryVIN"));
-        myFile.print(","); myFile.print(filename);
-        
-        // close the file:
-        myFile.close();
-    } else {
-        // if the file didn't open, print an error:
-        Serial.println(F("Error while writing SD"));
-    }
-
-    // print the data to debug output as well
-    Serial.println(F("Counter,Latitude,Longitude,mc_10p0,mc_2p5,mc_4p0,mc_1p0,nc_0p5,nc_1p0,nc_2p5,nc_4p0,nc_10p0,ParticleSize,Temperature,Humidity,gpsUpdated,Satellites,GPS_speed,Date,Time,Millis,BatteryVIN"));
+    if (!SD.begin(CSPIN)) Serial.println(F("SD card not available."));
+    else Serial.println(F("SD card found."));
 
     // Initialise GSM
     //while (Serial1.available() > 0){ 
-        initSIM();
-        Serial.println(F("SIM card initialised"));
-    
-    //else Serial.println(F("GSM not available"));
-    
+    initSIM();
+    if (imei == "") Serial.println("GSM not available.");
+    else {    
+      Serial.print("GSM found, IMEI: ");
+      Serial.println(imei);
+    }
+    delay(50);
+
+    // print whether GPS data communication is enabled or not
+    if (Serial2.available() > 0) {
+        Serial.println(F("GPS module found."));
+    } else {
+        Serial.println(F("GPS module not available."));
+    }
+   
+//   // Testing humidity sensor
+  if (! sht31.begin(0x44)) {   // Set to 0x45 for alternate i2c addr
+    Serial.println(F("SHT31 sensor not available."));
+//    while (1) delay(1);
+  }
+  else Serial.println(F("SHT31 sensor found."));
+
+   //Testing PM sensor
+    SPS30_start_measurement();
+    SPS30_cleaning();
+    sps30_sn = SPS30_getSerialNumber();
+ 
+    // open the file. Note that only one file can be open at a time,so you have to close this one before opening another.
+    filename = getNextName();
+    delay(50);
+    Serial.print(F("Filename: ")); Serial.print(filename); Serial.println(F(".csv"));
+    delay(50);
+    digitalWrite(LED, LOW);
+    myFile = SD.open(filename + ".csv", FILE_WRITE);
+
+    // if the file opened okay, write to it:
+    if (myFile) {
+        myFile.print(code_version); myFile.print(", IMEI: "); myFile.print(imei); myFile.print(", SPS30 SN: "); myFile.println(sps30_sn); 
+        myFile.println(header);
+        
+        // close the file:
+        myFile.close();
+    }
+
+    // print the data to debug output as well
+    Serial.println(header);
+            
     digitalWrite(LED, HIGH);
     mtime = millis();
 }
@@ -153,7 +164,29 @@ void loop() {
                 gpsUpdated = 1;
             }
             
-            payload = String(gps.location.lat()+180) + "," + String(gps.location.lng()+90)+ "," + String(mc_10p0)+ "," + String(mc_2p5)+ "," + String(mc_4p0)+ "," + String(mc_1p0)+ "," + String(nc_0p5)+ "," + String(nc_1p0)+ "," + String(nc_2p5)+ "," + String(nc_4p0)+ "," + String(nc_10p0)+ "," + String(typical_particle_size)+ "," + String(temperature)+ "," + String(humidity)+ "," + String(gpsUpdated)+ "," + String(gps.satellites.value())+ "," + String(gps.speed.kmph()) + "," + String(formatDate())+ "," + String(formatTime())+ "," + String(mtime)+ "," + String(vin) + "," + code_version;
+            payload = String(counter) + "," +
+                      String(gps.location.lat()) + "," + 
+                      String(gps.location.lng()) + "," + 
+                      String(mc_10p0)+ "," + 
+                      String(mc_2p5)+ "," + 
+                      String(gpsUpdated)+ "," + 
+                      String(gps.speed.kmph()) + "," + 
+                      String(gps.altitude.meters()) + "," + 
+                      String(gps.satellites.value())+ "," + 
+                      String(formatDate())+ "," + 
+                      String(formatTime())+ "," + 
+                      String(mtime)+ "," + 
+                      String(mc_4p0)+ "," + 
+                      String(mc_1p0)+ "," + 
+                      String(nc_0p5)+ "," + 
+                      String(temperature)+ "," + 
+                      String(humidity)+ "," + 
+                      String(nc_10p0)+ "," + 
+                      String(nc_2p5)+ "," + 
+                      String(typical_particle_size)+ "," + 
+                      String(vin)+ "," +
+                      String(nc_1p0)+ "," + 
+                      String(nc_4p0);
             uploadSIM(payload);
             
             // open file to write sensor data
@@ -161,7 +194,7 @@ void loop() {
             
             // if the file opened successfully, write the sensor data to it
             if (myFile) {
-              myFile.print(payload);
+              myFile.println(payload);
               myFile.close();
             }
 
@@ -169,6 +202,7 @@ void loop() {
             digitalWrite(LED, HIGH);
 
             // print data to serial output for debugging purposes
+            delay(100);
             Serial.println(payload);
             
             // set current time
@@ -231,9 +265,12 @@ String formatInt(int num, int precision) {
 }
 
 // check filenames on SD card and increment by one
-int getNextName() {
+String getNextName() {
   File root = SD.open("/");
-  int out = 10000;
+  String output;
+  if (imei == "") output = "000";
+  else output = imei.substring(0, 3); // filenames longer than 6 digits are not being read so we only take 3 digits of the imei
+  int out = 100;
   while (true) {
     // check file
     File entry = root.openNextFile();
@@ -245,16 +282,17 @@ int getNextName() {
 
     // check if the filename is in the correct range. If it is, increment the counter
     String temp = entry.name();
-    temp = temp.substring(0 ,5);
+    temp = temp.substring(3 ,6);
     int num = temp.toInt();
-    if (num < 99999 && num >= out) {
+    if (num < 999 && num >= out) {
       out = num + 1;
     }
 
     // close the file
     entry.close();
   }
-  return out;
+  output = output+String(out);
+  return output;
 }
 
 
@@ -310,16 +348,16 @@ void SPS30_start_measurement(){
    Wire.write(CalcCrc(data));
    
    Wire.endTransmission();
-   delay(10000);
+   delay(1000);
 }
 
 void SPS30_cleaning(){
-  Serial.println(F("clean"));
+  Serial.println(F("Cleaning SPS30 sensor..."));
   //Start fan cleaning
   SetPointer(0x56, 0x07);
   delay(12000);
-  Serial.println(F("clean end"));
-  delay(100); 
+  Serial.println(F("Cleaning finished!"));
+  delay(50); 
 }
 
 void SPS30_reading(){
@@ -378,8 +416,24 @@ void SPS30_reading(){
   //  SetPointer(0x01, 0x04);
   }
 
+String SPS30_getSerialNumber() {
+  byte SN[48]; // SN is stored in 48 bytes, each representing 1 ASCII character
+  SetPointer(0xD0,0x33); // set to mode
+  Wire.requestFrom(SPS30_addr, 48); // request SN
+  for (int i=0; i<48; i++) SN[i]=Wire.read(); // read answer  
+  String output = "";
+  for (int i=0; i<48; i++) {
+//    Serial.print(i); Serial.print(": "); Serial.print(SN[i]); Serial.print(" = "); Serial.println(char(SN[i]));
+    if (i%3==0) { // 2 ASCII bytes are followed by 1 checksum byte
+      output += char(SN[i]);
+      output += char(SN[i+1]);
+    }
+  }
+  Serial.print("SPS30 SN: "); Serial.println(output);
+  return output;
+}
 
-  void initSIM() {
+void initSIM() {
   runCommand("AT");
   imei = runCommand ("AT+CGSN").substring(0,15);
   cnum = runCommand ("AT+CNUM").substring(13,27);
@@ -389,7 +443,7 @@ void SPS30_reading(){
   runCommand("AT+SAPBR=3,1,\"APN\",\"TM\"");
   runCommand("AT+SAPBR=1,1");
   runCommand("AT+SAPBR=2,1");
-  runCommand("AT+HTTPINIT");    
+  runCommand("AT+HTTPINIT");  
 }
 
 void uploadSIM(String payload) {
@@ -399,7 +453,7 @@ void uploadSIM(String payload) {
 }
   
 String runCommand(String cmd) {
-  Serial.println(cmd);
+//  Serial.println(cmd);
   Serial1.println(cmd);
   delay(1000);
   String resp = "";
@@ -417,48 +471,39 @@ String runCommand(String cmd) {
       filteredResp += resp[i];
   }
 
-  Serial.println("filtered: " + filteredResp);
+//  Serial.println("filtered: " + filteredResp);
   return filteredResp;
-  
 }
-
-//String getRandomName() { // generate a "random" filename using sensor input
-//  uint32_t ran = 0;
-//  for (int i = 0; i < 7; i++) ran += ref[i];
-//  while (ran > 99999) ran -= ref[0];
-//  String out = String(ran);
-//  return out;
-//}
 
 // encode a 28 digit number String into a 12 byte ASCII string
 // this function was used to encode more data using fewer bytes
 // this function is no longer needed
-/*String encodeMsg28(String msg) {
-    if (msg.length() != 28) {
-        String ret = "" + msg.length();
-        return ret;
-    }
-
-    unsigned char bytes[3];
-    String out = "";
-
-    for (int j = 0; j < 4; j++)
-    {
-        String temp = "";
-        for (int i = 0; i < 7; i++)
-            temp += msg[j * 7 + i];
-        unsigned long int t = temp.toInt();
-
-        bytes[0] = (t >> 16);
-        bytes[1] = (t >> 8);
-        bytes[2] = t;
-        //out += (unsigned char) bytes[0] + (unsigned char) bytes[1] + (unsigned char) bytes[2];
-        out += (char) bytes[0];
-        out += (char) bytes[1];
-        out += (char) bytes[2];
-    }
-    return out;
-}*/
+//String encodeMsg28(String msg) {
+//    if (msg.length() != 28) {
+//        String ret = "" + msg.length();
+//        return ret;
+//    }
+//
+//    unsigned char bytes[3];
+//    String out = "";
+//
+//    for (int j = 0; j < 4; j++)
+//    {
+//        String temp = "";
+//        for (int i = 0; i < 7; i++)
+//            temp += msg[j * 7 + i];
+//        unsigned long int t = temp.toInt();
+//
+//        bytes[0] = (t >> 16);
+//        bytes[1] = (t >> 8);
+//        bytes[2] = t;
+//        //out += (unsigned char) bytes[0] + (unsigned char) bytes[1] + (unsigned char) bytes[2];
+//        out += (char) bytes[0];
+//        out += (char) bytes[1];
+//        out += (char) bytes[2];
+//    }
+//    return out;
+//}
 
 //String trimGPS(double lati) { // returns longitude/latitude trimmed to 5 relevant digits
 //  int temp = ((int)(lati*100000))%100000; // also works but might cause loss of precision: =(int)((lati-(int)lati)*100000);
@@ -467,29 +512,3 @@ String runCommand(String cmd) {
 //  for (int i=0; i<temp; i++) out="0"+out;
 //  return out;
 //}
-
-            /*
-             * m = sprintf(c, " %3d:  %5d    ", i,n);    // build integer string using C integer formatters  (m is length, and not used in this code)
-               Serial.print(c);   
-
-              dtostrf(x,6,3,f);                          // -n.nnn Use this for a consistent float format
-              Serial.println(f); 
-             */
-
-            /*char latitude[9];
-            char longitude[9];
-            char mass_1[5];
-            char mass_25[5];
-            char mass_4[5];
-            char mass_10[5];
-            
-            dtostrf(gps.location.lat()+180, 3,6,latitude);
-            dtostrf(gps.location.lng()+90, 3,6,longitude);
-            dtostrf(mc_1p0,3,2,mass_1);
-            dtostrf(mc_2p5,3,2,mass_25);
-            dtostrf(mc_4p0,3,2,mass_4);
-            dtostrf(mc_10p0,3,2,mass_10);
-            
-            Serial.print("latitude: "); Serial.println(latitude);
-            */
-
