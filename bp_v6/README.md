@@ -1,4 +1,4 @@
-﻿## Important: bp_v6 is our new Argentina prototype and currently not compatible with the old PCB on which this GihHub documentation is based on. This is a work in progress.
+﻿## Important: bp_v6 is our new Kenya prototype and currently not compatible with the old PCB on which this GihHub documentation is based on. This is a work in progress.
 
 ### New features
 - SIM800L GSM wireless transmission
