@@ -1,7 +1,7 @@
 #include <TinyGPS++.h>
 #include <SPI.h>
 #include <SD.h>
-#include <Wire.h>
+#include <Wire.h> // BUFFER_LENGTH 32 in WireBase.h and Wire_slave.cpp has been increased to 64 to read full SPS30 buffer
 #include "Adafruit_SHT31.h"
 
 #define LED PB12
@@ -90,8 +90,13 @@ void setup() {
     initSIM();
     if (imei == "") Serial.println("GSM not available.");
     else {    
-      Serial.print("GSM found, IMEI: ");
+      Serial.print(F("GSM found, IMEI: "));
       Serial.println(imei);
+      if (cnum != "") {
+        Serial.print(F("SIM card number: "));
+        Serial.println(cnum);
+      }
+      else Serial.println(F("No SIM card."));
     }
     delay(50);
 
@@ -124,7 +129,7 @@ void setup() {
 
     // if the file opened okay, write to it:
     if (myFile) {
-        myFile.print(code_version); myFile.print(", IMEI: "); myFile.print(imei); myFile.print(", SPS30 SN: "); myFile.println(sps30_sn); 
+        myFile.print(code_version); myFile.print(", IMEI: "); myFile.print(imei); myFile.print(", SIM card number: "); myFile.print(cnum); myFile.print(", SPS30 SN: "); myFile.println(sps30_sn); 
         myFile.println(header);
         
         // close the file:
