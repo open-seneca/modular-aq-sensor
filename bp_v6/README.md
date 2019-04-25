@@ -11,3 +11,7 @@
 ### Discontinued functions
 - Accelerometer / Gyroscope
 - LoRa wireless transmission
+
+
+The measured power draw is around 70-90mA (while GSM is not trasmitting) at 5V supply, ~0.4W.
+With a 10.000mAh powerbank you can keep the sensor running for about 5 days constantly (ideal conditions).
