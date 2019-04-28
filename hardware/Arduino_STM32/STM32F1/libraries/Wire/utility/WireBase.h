@@ -44,7 +44,7 @@
 #include "wirish.h"
 #include <libmaple/i2c.h>
 
-#define BUFFER_LENGTH 32
+#define BUFFER_LENGTH 64
 
 /* return codes from endTransmission() */
 #define SUCCESS   0        /* transmission was successful */

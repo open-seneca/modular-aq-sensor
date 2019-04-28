@@ -29,7 +29,7 @@ extern "C" {
 #include "wirish.h"
 #include <libmaple/i2c_slave.h>
 
-#define BUFFER_LENGTH 32
+#define BUFFER_LENGTH 64
 
 #define MASTER_ADDRESS 0x33
 // Constructors ////////////////////////////////////////////////////////////////

@@ -1,7 +1,7 @@
 #include <TinyGPS++.h>
 #include <SPI.h>
 #include <SD.h>
-#include <Wire.h> // BUFFER_LENGTH 32 in WireBase.h and Wire_slave.cpp has been increased to 64 to read full SPS30 buffer
+#include <Wire.h> // BUFFER_LENGTH 32 in WireBase.h and Wire_slave.cpp has been increased to 64 to read full SPS30 buffer (download from our Github)
 #include "Adafruit_SHT31.h"
 
 #define LED PB12
@@ -17,7 +17,7 @@
 #define SPS30_addr 0x69
 
 String code_version = "BlackPill_v6";
-String header = "Counter,Latitude,Longitude,PM10,PM2.5,gpsUpdated,Speed,Altitude,Satellites,Date,Time,Millis,PM4.0,PM1.0,PM0.5[#/cm3],Temperature,Humidity,PM10[#/cm3],PM2.5[#/cm3],TypicalParticleSize,BatteryVIN,PM1.0[#/cm3],PM4.0[#/cm3]";
+String header = "Counter,Latitude,Longitude,gpsUpdated,Speed,Altitude,Satellites,Date,Time,Millis,PM1.0,PM2.5,PM4.0,PM10,Temperature,Humidity,NC0.5,NC1.0,NC2.5,NC4.0,NC10,TypicalParticleSize,BatteryVIN";
 
 // PM sensor SPS30
 float mc_1p0, mc_2p5, mc_4p0, mc_10p0, nc_0p5, nc_1p0, nc_2p5, nc_4p0, nc_10p0, typical_particle_size = 0;
@@ -37,9 +37,10 @@ uint32_t mtime;
 Adafruit_SHT31 sht31 = Adafruit_SHT31();
 
 //GSM module
-String imei, cnum, payload = "";
+String imei = "", cnum = "", payload = "";
+bool sim_connected = 0;
 
-float vin, temperature, humidity = 0;
+float vin = 0, temperature = 0, humidity = 0;
 int counter=0, gpsUpdated = 0;
 
 void setup() {
@@ -87,8 +88,7 @@ void setup() {
 
     // Initialise GSM
     //while (Serial1.available() > 0){ 
-    initSIM();
-    if (imei == "") Serial.println("GSM not available.");
+    if (!initSIM()) Serial.println("GSM not available.");
     else {    
       Serial.print(F("GSM found, IMEI: "));
       Serial.println(imei);
@@ -170,10 +170,8 @@ void loop() {
             }
             
             payload = String(counter) + "," +
-                      String(gps.location.lat()) + "," + 
-                      String(gps.location.lng()) + "," + 
-                      String(mc_10p0)+ "," + 
-                      String(mc_2p5)+ "," + 
+                      String(gps.location.lat(), 6) + "," + 
+                      String(gps.location.lng(), 6) + "," + 
                       String(gpsUpdated)+ "," + 
                       String(gps.speed.kmph()) + "," + 
                       String(gps.altitude.meters()) + "," + 
@@ -181,18 +179,20 @@ void loop() {
                       String(formatDate())+ "," + 
                       String(formatTime())+ "," + 
                       String(mtime)+ "," + 
-                      String(mc_4p0)+ "," + 
                       String(mc_1p0)+ "," + 
-                      String(nc_0p5)+ "," + 
+                      String(mc_2p5)+ "," + 
+                      String(mc_4p0)+ "," + 
+                      String(mc_10p0)+ "," + 
                       String(temperature)+ "," + 
                       String(humidity)+ "," + 
-                      String(nc_10p0)+ "," + 
-                      String(nc_2p5)+ "," + 
-                      String(typical_particle_size)+ "," + 
-                      String(vin)+ "," +
+                      String(nc_0p5)+ "," + 
                       String(nc_1p0)+ "," + 
-                      String(nc_4p0);
-            uploadSIM(payload);
+                      String(nc_2p5)+ "," + 
+                      String(nc_4p0)+ "," +
+                      String(nc_10p0)+ "," + 
+                      String(typical_particle_size)+ "," + 
+                      String(vin);
+            if (imei != "") uploadSIM(payload);
             
             // open file to write sensor data
             myFile = SD.open(String(filename) + ".csv", FILE_WRITE);
@@ -273,8 +273,8 @@ String formatInt(int num, int precision) {
 String getNextName() {
   File root = SD.open("/");
   String output;
-  if (imei == "") output = "000";
-  else output = imei.substring(0, 3); // filenames longer than 6 digits are not being read so we only take 3 digits of the imei
+  if (sps30_sn == "") output = "000";
+  else output = sps30_sn.substring(0, 3); // filenames longer than 6 digits are not being read so we only take 3 digits of the serial number
   int out = 100;
   while (true) {
     // check file
@@ -438,22 +438,41 @@ String SPS30_getSerialNumber() {
   return output;
 }
 
-void initSIM() {
-  runCommand("AT");
-  imei = runCommand ("AT+CGSN").substring(0,15);
-  cnum = runCommand ("AT+CNUM").substring(13,27);
-  runCommand("AT+CREG?");
-  runCommand("AT+CSQ");
-  runCommand("AT+SAPBR=3,1,\"Contype\",\"GPRS\"");
-  runCommand("AT+SAPBR=3,1,\"APN\",\"TM\"");
-  runCommand("AT+SAPBR=1,1");
-  runCommand("AT+SAPBR=2,1");
-  runCommand("AT+HTTPINIT");  
+boolean initSIM() {
+  long sim_start = millis();
+  if (sendATcommand("AT+CFUN=1", "OK", 5000) == 0) return false;   
+  
+  while ( millis() - sim_start < 30000 && sim_connected == 0) {
+      if ( (sendATcommand("AT+CREG?", "+CREG: 1,1", 500) == 1 || sendATcommand("AT+CREG?", "+CREG: 1,5", 500) == 1 ||
+           sendATcommand("AT+CREG?", "+CREG: 0,1", 500) == 1 || sendATcommand("AT+CREG?", "+CREG: 0,5", 500)) == 1 ){
+            sim_connected = 1;
+          } else {
+            sim_connected = 0;
+          }
+      Serial.println(millis() - sim_start);
+      Serial.println(sim_connected);
+  }
+  sendATcommand("AT+CGATT?", "+CGATT: 1", 1000);
+
+  delay(100);
+  imei = runCommand("AT+CGSN").substring(0,15);
+  delay(100);
+  cnum = runCommand("AT+CNUM").substring(13,27);
+  
+  sendATcommand("AT+CSQ", "OK", 1000);
+  sendATcommand("AT+SAPBR=3,1,\"Contype\",\"GPRS\"", "OK", 5000);
+  sendATcommand("AT+SAPBR=3,1,\"APN\",\"TM\"", "OK", 5000);
+  sendATcommand("AT+SAPBR=1,1", "OK", 1000);
+  sendATcommand("AT+SAPBR=2,1", "OK", 1000);
+  sendATcommand("AT+HTTPINIT", "OK", 1000); 
+  return true;
 }
 
 void uploadSIM(String payload) {
   runCommand("AT+HTTPPARA=\"URL\",\"http://app.cambikesensor.net/php/gsmUpload.php?imei=" + imei + "&simnumber=" + cnum + "&payload=" + payload + "\"");
-  runCommand("AT+HTTPACTION=0");
+  if ( runCommand("AT+HTTPACTION=0") == "ERROR" && sim_connected == 1){
+    initSIM();
+  }
   runCommand("AT+HTTPREAD");
 }
   
@@ -476,8 +495,40 @@ String runCommand(String cmd) {
       filteredResp += resp[i];
   }
 
-//  Serial.println("filtered: " + filteredResp);
+  Serial.println("filtered: " + filteredResp);
   return filteredResp;
+}
+
+int8_t sendATcommand(char* ATcommand, char* expected_answer, unsigned int timeout) {
+    uint8_t x=0,  answer=0;
+    char response[100];
+    unsigned long previous;
+
+    memset(response, '\0', 100);    // Initialice the string    
+    delay(100);
+    
+    while( Serial1.available() > 0) Serial1.read();    // Clean the input buffer
+    if (ATcommand[0] != '\0') {
+        Serial1.println(ATcommand);    // Send the AT command 
+    }
+    
+    x = 0;
+    previous = millis();
+
+    // this loop waits for the answer
+    do{
+        if(Serial1.available() != 0){    // if there are data in the UART input buffer, reads it and checks for the asnwer
+            response[x] = Serial1.read();
+            Serial.print(response[x]);
+            x++;
+            if (strstr(response, expected_answer) != NULL)    // check if the desired answer (OK) is in the response of the module
+            {
+                answer = 1;
+            }
+        }
+    }while((answer == 0) && ((millis() - previous) < timeout));    // Waits for the asnwer with time out
+
+    return answer;
 }
 
 // encode a 28 digit number String into a 12 byte ASCII string
