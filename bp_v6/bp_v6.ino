@@ -201,10 +201,9 @@ void loop() {
             if (myFile) {
               myFile.println(payload);
               myFile.close();
+              // turn off LED for user feedback
+              digitalWrite(LED, HIGH);
             }
-
-            // turn off LED for user feedback
-            digitalWrite(LED, HIGH);
 
             // print data to serial output for debugging purposes
             delay(100);
@@ -440,7 +439,9 @@ String SPS30_getSerialNumber() {
 
 boolean initSIM() {
   long sim_start = millis();
-  if (sendATcommand("AT+CFUN=1", "OK", 5000) == 0) return false;   
+  if (sendATcommand("AT+CFUN=1", "OK", 5000) == 0) return false;  
+  sendATcommand("AT+COPS=2", "OK", 2000);
+  sendATcommand("AT+COPS=0", "OK", 2000);
   
   while ( millis() - sim_start < 30000 && sim_connected == 0) {
       if ( (sendATcommand("AT+CREG?", "+CREG: 1,1", 500) == 1 || sendATcommand("AT+CREG?", "+CREG: 1,5", 500) == 1 ||
