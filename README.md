@@ -1,5 +1,6 @@
 ![alt text](https://raw.githubusercontent.com/sh969/Open-Seneca/master/logo.png)
 
+
 If you already have a sensor and want to upload and visualise your data you can create an account here:
 
 http://app.open-seneca.org
