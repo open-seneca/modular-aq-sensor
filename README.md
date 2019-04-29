@@ -2,10 +2,10 @@
 
 ## A cyclist’s mobile sensor hub for big data citizen science.
 
-If you already have a sensor and want to upload and visualise your data you can create an account here: /n
+If you already have a sensor and want to upload and visualise your data you can create an account here:
 http://app.cambikesensor.net
 
-Please refer to our wiki page to learn about the assembly of the hardware to build a CamBike sensor youself: /n
+Please refer to our wiki page to learn about the assembly of the hardware to build a CamBike sensor youself:
 http://wiki.cambikesensor.net
 
 ![alt text](https://raw.githubusercontent.com/sh969/CambikeSensor/master/photo.png)
