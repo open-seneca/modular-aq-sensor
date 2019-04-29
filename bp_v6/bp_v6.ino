@@ -456,8 +456,8 @@ boolean initSIM() {
           } else {
             sim_connected = 0;
           }
-      Serial.println(millis() - sim_start);
-      Serial.println(sim_connected);
+//      Serial.println(millis() - sim_start);
+//      Serial.println(sim_connected);
   }
   sendATcommand("AT+CGATT?", "+CGATT: 1", 1000);
 
@@ -485,7 +485,7 @@ void uploadSIM(String payload) {
   
 String runCommand(String cmd) {
 //  Serial.println(cmd);
-  Serial1.println(cmd);
+//  Serial1.println(cmd);
   delay(1000);
   String resp = "";
   
@@ -502,7 +502,7 @@ String runCommand(String cmd) {
       filteredResp += resp[i];
   }
 
-  Serial.println("filtered: " + filteredResp);
+//  Serial.println("filtered: " + filteredResp);
   return filteredResp;
 }
 
@@ -526,7 +526,7 @@ int8_t sendATcommand(char* ATcommand, char* expected_answer, unsigned int timeou
     do{
         if(Serial1.available() != 0){    // if there are data in the UART input buffer, reads it and checks for the asnwer
             response[x] = Serial1.read();
-            Serial.print(response[x]);
+//            Serial.print(response[x]);
             x++;
             if (strstr(response, expected_answer) != NULL)    // check if the desired answer (OK) is in the response of the module
             {
