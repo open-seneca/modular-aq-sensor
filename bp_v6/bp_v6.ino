@@ -439,7 +439,13 @@ String SPS30_getSerialNumber() {
 
 boolean initSIM() {
   long sim_start = millis();
-  if (sendATcommand("AT+CFUN=1", "OK", 5000) == 0) return false;  
+  bool module_present = 0;
+  
+  while ( millis() - sim_start < 5000 && module_present == 0) {
+      module_present = sendATcommand("AT+CFUN=1", "OK", 500);
+  }
+  
+  if (module_present == 0) return false; 
   sendATcommand("AT+COPS=2", "OK", 2000);
   sendATcommand("AT+COPS=0", "OK", 2000);
   
