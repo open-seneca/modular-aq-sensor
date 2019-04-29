@@ -2,6 +2,9 @@
 
 ## A cyclist’s mobile sensor hub for big data citizen science.
 
+If you already have a sensor and want to upload and visualise your data you can create an account here:
+http://app.open-seneca.org
+
 Please refer to our wiki page to learn about the assembly of the hardware to build a CamBike sensor youself:
 http://wiki.cambikesensor.net
 
