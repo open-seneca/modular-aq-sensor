@@ -112,7 +112,7 @@ void setup() {
     Serial.println(F("SHT31 sensor not available."));
 //    while (1) delay(1);
   }
-  else Serial.println(F("SHT31 sensor found."));
+  else Serial.println(F("SHT31 sensor initiated."));
 
    //Testing PM sensor
     SPS30_start_measurement();
@@ -356,11 +356,11 @@ void SPS30_start_measurement(){
 }
 
 void SPS30_cleaning(){
-  Serial.println(F("Cleaning SPS30 sensor..."));
+  Serial.println(F("Attempting to clean SPS30 sensor..."));
   //Start fan cleaning
   SetPointer(0x56, 0x07);
   delay(12000);
-  Serial.println(F("Cleaning finished!"));
+  Serial.println(F("Done!"));
   delay(50); 
 }
 
@@ -433,7 +433,10 @@ String SPS30_getSerialNumber() {
       output += char(SN[i+1]);
     }
   }
-  Serial.print("SPS30 SN: "); Serial.println(output);
+  if (output == "") Serial.println(F("SPS30 sensor not available."));
+  else {
+    Serial.print("SPS30 SN: "); Serial.println(output);
+  }
   return output;
 }
 
