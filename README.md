@@ -11,8 +11,7 @@ http://wiki.cambikesensor.net
 
 ![alt text](https://raw.githubusercontent.com/sh969/Open-Seneca/master/photo.png)
 
-If you have already built your kit and want to flash the code to the Black Pill board, you are exactly right here. 
-Here is how:
+If you have built your kit and want to flash the code to the Black Pill board, here is how:
 
 a) Wiring and onboard jumpers:
 - RX on the USB2TTL adapter to PA9, TX to PA10, GND to G, 3.3V to V3
