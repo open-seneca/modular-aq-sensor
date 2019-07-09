@@ -479,7 +479,7 @@ boolean initSIM() {
 }
 
 void uploadSIM(String payload) {
-  runCommand("AT+HTTPPARA=\"URL\",\"http://app.cambikesensor.net/php/gsmUpload.php?imei=" + imei + "&simnumber=" + cnum + "&payload=" + payload + "\"");
+  runCommand("AT+HTTPPARA=\"URL\",\"http://app.open-seneca.org/php/gsmUpload.php?imei=" + imei + "&simnumber=" + cnum + "&payload=" + payload + "\"");
   if ( runCommand("AT+HTTPACTION=0") == "ERROR" && sim_connected == 1){
     initSIM();
   }
