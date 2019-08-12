@@ -3,6 +3,7 @@
 #include <SD.h>
 #include <Wire.h> // BUFFER_LENGTH 32 in WireBase.h and Wire_slave.cpp has been increased to 64 to read full SPS30 buffer (download from our Github)
 #include "Adafruit_SHT31.h"
+#include <Adafruit_SSD1306.h>
 
 #define LED PB12
 #define CSPIN PA4
@@ -15,8 +16,17 @@
 
 #define SHT_addr 0x44
 #define SPS30_addr 0x69
+#define SSD1306_addr 0x3C
 
-String code_version = "BlackPill_v6";
+#define SCREEN_WIDTH 128 // OLED display width, in pixels
+#define SCREEN_HEIGHT 64 // OLED display height, in pixels
+
+// Declaration for an SSD1306 display connected to I2C (SDA, SCL pins)
+#define OLED_RESET     4 // Reset pin # (or -1 if sharing Arduino reset pin)
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+bool display_connected = true; // does not seem to work yet, implement i2c address check at bootup
+
+String code_version = "BlackPill_v7";
 String header = "Counter,Latitude,Longitude,gpsUpdated,Speed,Altitude,Satellites,Date,Time,Millis,PM1.0,PM2.5,PM4.0,PM10,Temperature,Humidity,NC0.5,NC1.0,NC2.5,NC4.0,NC10,TypicalParticleSize,BatteryVIN";
 
 // PM sensor SPS30
@@ -38,7 +48,8 @@ Adafruit_SHT31 sht31 = Adafruit_SHT31();
 
 //GSM module
 String imei = "", cnum = "", payload = "";
-bool sim_connected = 0;
+bool sim_connected = false;
+bool gps_connected = true;
 
 float vin = 0, temperature = 0, humidity = 0;
 int counter=0, gpsUpdated = 0;
@@ -66,17 +77,13 @@ void setup() {
 //      digitalWrite(GREEN, LOW);
 //      digitalWrite(RED, HIGH);
 //      delay(300);
-//    }    
-
-    // Enabling internal pull ups resistors for I2C communication
-    pinMode(SDA,INPUT_PULLUP);
-    pinMode(SCL,INPUT_PULLUP);
+//    }   
     
     // Open serial communications and wait for port to open:
     Serial.begin(9600);
     Serial1.begin(9600);
     Serial2.begin(9600); // GPS baudrate is 9600
-    delay(50);
+    delay(50); 
 
     // check if battery level is OK and output it to debug output
     /*if (!batteryOk()) {
@@ -89,6 +96,45 @@ void setup() {
     // initialise SD card
     if (!SD.begin(CSPIN)) Serial.println(F("SD card not available."));
     else Serial.println(F("SD card found."));
+   
+//   // Testing humidity sensor
+  if (! sht31.begin(0x44)) {   // Set to 0x45 for alternate i2c addr
+    Serial.println(F("SHT31 sensor not available."));
+//    while (1) delay(1);
+  }
+  else Serial.println(F("SHT31 sensor initiated."));
+
+    // OLED display intialisation
+    if(!display.begin(SSD1306_SWITCHCAPVCC, SSD1306_addr, false, false)) { // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
+      Serial.println(F("SSD1306 allocation failed")); // doesn't work, method never returns false
+      display_connected = false;
+    }  
+    if (display_connected) {
+      Serial.println(F("SSD1306 display initiated."));
+      // Show initial display buffer contents on the screen --
+      // the library initializes this with an Adafruit splash screen.
+  //    display.display();
+  //    delay(2000); // Pause for 2 seconds  
+      // Clear the buffer
+      display.clearDisplay();  
+      display.setTextSize(2); // Draw 2X-scale text
+      display.setTextColor(WHITE);
+      display.setCursor(0, 0);
+      display.println(F("openseneca"));
+      display.setTextSize(1);
+      display.println(F("air quality sensing"));
+      display.println(F("powered by citizen"));
+      display.println(F("science"));
+      display.println(); display.println();
+      display.println(code_version);
+      display.display();      // Show initial text
+      Serial.println(F("SSD1306 display updated."));
+    }
+
+   //Testing PM sensor
+    SPS30_start_measurement();
+    SPS30_cleaning();
+    sps30_sn = SPS30_getSerialNumber();
 
     // Initialise GSM
     //while (Serial1.available() > 0){ 
@@ -102,26 +148,15 @@ void setup() {
       }
       else Serial.println(F("No SIM card."));
     }
+    
     delay(50);
-
     // print whether GPS data communication is enabled or not
     if (Serial2.available() > 0) {
         Serial.println(F("GPS module found."));
     } else {
+        gps_connected = false;
         Serial.println(F("GPS module not available."));
     }
-   
-//   // Testing humidity sensor
-  if (! sht31.begin(0x44)) {   // Set to 0x45 for alternate i2c addr
-    Serial.println(F("SHT31 sensor not available."));
-//    while (1) delay(1);
-  }
-  else Serial.println(F("SHT31 sensor initiated."));
-
-   //Testing PM sensor
-    SPS30_start_measurement();
-    SPS30_cleaning();
-    sps30_sn = SPS30_getSerialNumber();
  
     // open the file. Note that only one file can be open at a time,so you have to close this one before opening another.
     filename = getNextName();
@@ -147,84 +182,113 @@ void setup() {
     mtime = millis();
 }
 
-void loop() {
-    
+void loop() {    
     // wait until GPS is available
-    while (Serial2.available() > 0) {
+    while (gps_connected && Serial2.available() > 0) {
         // read & encode GPS data
         gps.encode(Serial2.read());
-
-        // check that 3 seconds have passed, since this is our data collection timeframe
-        if (millis() - mtime > 5000) {
-            // turn on LED for user feedback
-            digitalWrite(LED, LOW);
-
-            // read in battery level
-            batteryOk();
-
-            // Read PM sensor SPS30
-            SPS30_reading();
-
-           // Read temperature and humidity 
-           temperature = sht31.readTemperature();
-           humidity = sht31.readHumidity();
-
-            if (gps.location.isUpdated()) {
-                gpsUpdated = 1;
-            }
-            
-            payload = String(counter) + "," +
-                      String(gps.location.lat(), 6) + "," + 
-                      String(gps.location.lng(), 6) + "," + 
-                      String(gpsUpdated)+ "," + 
-                      String(gps.speed.kmph()) + "," + 
-                      String(gps.altitude.meters()) + "," + 
-                      String(gps.satellites.value())+ "," + 
-                      String(formatDate())+ "," + 
-                      String(formatTime())+ "," + 
-                      String(mtime)+ "," + 
-                      String(mc_1p0)+ "," + 
-                      String(mc_2p5)+ "," + 
-                      String(mc_4p0)+ "," + 
-                      String(mc_10p0)+ "," + 
-                      String(temperature)+ "," + 
-                      String(humidity)+ "," + 
-                      String(nc_0p5)+ "," + 
-                      String(nc_1p0)+ "," + 
-                      String(nc_2p5)+ "," + 
-                      String(nc_4p0)+ "," +
-                      String(nc_10p0)+ "," + 
-                      String(typical_particle_size)+ "," + 
-                      String(vin);
-            if (imei != "") uploadSIM(payload);
-            
-            // open file to write sensor data
-            myFile = SD.open(String(filename) + ".csv", FILE_WRITE);
-            
-            // if the file opened successfully, write the sensor data to it
-            if (myFile) {
-              myFile.println(payload);
-              myFile.close();
-              // turn off LED for user feedback
-              digitalWrite(LED, HIGH);
-            }
-
-            // print data to serial output for debugging purposes
-            delay(100);
-            Serial.println(payload);
-            
-            // set current time
-            mtime = millis();
-          
-            counter++;
-            gpsUpdated = 0;
-        }
     }
-    delay(10);
-    
+    // check that 3 seconds have passed, since this is our data collection timeframe
+    if (millis() - mtime > 5000) {
+      routine();
+    }
 } //end loop
 
 // FUNCTIONS
+
+void routine() {
+    // turn on LED for user feedback
+    digitalWrite(LED, LOW);
+
+    // read in battery level
+    batteryOk();
+
+    // Read PM sensor SPS30
+    SPS30_reading();
+
+   // Read temperature and humidity 
+   temperature = sht31.readTemperature();
+   humidity = sht31.readHumidity();
+
+    if (gps.location.isUpdated()) {
+        gpsUpdated = 1;
+    }
+    
+    payload = String(counter) + "," +
+              String(gps.location.lat(), 6) + "," + 
+              String(gps.location.lng(), 6) + "," + 
+              String(gpsUpdated)+ "," + 
+              String(gps.speed.kmph()) + "," + 
+              String(gps.altitude.meters()) + "," + 
+              String(gps.satellites.value())+ "," + 
+              String(formatDate())+ "," + 
+              String(formatTime())+ "," + 
+              String(mtime)+ "," + 
+              String(mc_1p0)+ "," + 
+              String(mc_2p5)+ "," + 
+              String(mc_4p0)+ "," + 
+              String(mc_10p0)+ "," + 
+              String(temperature)+ "," + 
+              String(humidity)+ "," + 
+              String(nc_0p5)+ "," + 
+              String(nc_1p0)+ "," + 
+              String(nc_2p5)+ "," + 
+              String(nc_4p0)+ "," +
+              String(nc_10p0)+ "," + 
+              String(typical_particle_size)+ "," + 
+              String(vin);
+    if (imei != "") uploadSIM(payload);
+    
+    // open file to write sensor data
+    myFile = SD.open(String(filename) + ".csv", FILE_WRITE);
+    
+    // if the file opened successfully, write the sensor data to it
+    if (myFile) {
+      myFile.println(payload);
+      myFile.close();
+      // turn off LED for user feedback
+      digitalWrite(LED, HIGH);
+    }
+
+    // print data to serial output for debugging purposes
+    delay(100);
+    Serial.println(payload);
+
+    // update data on OLED screen
+    if (display_connected) {
+      updateDisplay();
+    }
+    
+    // set current time
+    mtime = millis();
+  
+    counter++;
+    gpsUpdated = 0;
+}
+
+void updateDisplay() {  
+    // show on OLED
+    display.clearDisplay();  
+    display.setTextSize(1); 
+    display.setTextColor(WHITE);
+    display.setCursor(0, 0);
+    display.print(String(gps.time.hour())+F(":")+String(gps.time.minute()));
+    display.setCursor(52, 0);
+    display.print(String(round(humidity))+F(" %"));
+    display.setCursor(100, 0);
+    display.println(String(round(temperature))+F(" C"));
+    display.println(); display.setTextSize(4);
+    String pm = String(mc_2p5);
+    if (pm.length() > 7) display.print("9999"); // saturation for displaying
+    else display.print(pm); // remove chars including index 4 onwards
+    display.setTextSize(1);          
+    display.println("ug/m3");    
+    display.println();     
+    display.println();     
+    display.println();   
+    display.println("PM2.5");
+    display.display();
+}
 
 // format date in the following format:
 // YYYYMMDD
@@ -456,7 +520,7 @@ boolean initSIM() {
   sendATcommand("AT+COPS=2", "OK", 2000);
   sendATcommand("AT+COPS=0", "OK", 2000);
   
-  while ( millis() - sim_start < 30000 && sim_connected == 0) {
+  while ( millis() - sim_start < 20000 && sim_connected == 0) {
       if ( (sendATcommand("AT+CREG?", "+CREG: 1,1", 500) == 1 || sendATcommand("AT+CREG?", "+CREG: 1,5", 500) == 1 ||
            sendATcommand("AT+CREG?", "+CREG: 0,1", 500) == 1 || sendATcommand("AT+CREG?", "+CREG: 0,5", 500)) == 1 ){
             sim_connected = 1;
@@ -492,7 +556,7 @@ void uploadSIM(String payload) {
   
 String runCommand(String cmd) {
 //  Serial.println(cmd);
-//  Serial1.println(cmd);
+  Serial1.println(cmd);
   delay(1000);
   String resp = "";
   
