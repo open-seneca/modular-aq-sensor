@@ -47,11 +47,12 @@ Adafruit_SHT31 sht31 = Adafruit_SHT31();
 
 // VOC sensor SGP30
 uint16_t sgp30_sn[3];
-uint16_t TVOC; // Total Volatile Organic Compounds in ppb
-uint16_t eCO2; // Equivalent CO2 in ppm
+int16_t TVOC = -1; // Total Volatile Organic Compounds in ppb
+int16_t eCO2 = -1; // Equivalent CO2 in ppm
+bool sgp_connected = true;
 
 // PM sensor SPS30
-float mc_1p0, mc_2p5, mc_4p0, mc_10p0, nc_0p5, nc_1p0, nc_2p5, nc_4p0, nc_10p0, typical_particle_size = 0;
+float mc_1p0, mc_2p5, mc_4p0, mc_10p0, nc_0p5, nc_1p0, nc_2p5, nc_4p0, nc_10p0, typical_particle_size = -1;
 byte w1, w2,w3;
 byte ND[60];
 long tmp;
@@ -118,14 +119,17 @@ void setup() {
   else Serial.println(F("SHT31 sensor initiated."));
 
   // Testing VOC sensor
-  if (!SGP30_init(SGP30_addr))
+  if (!SGP30_init(SGP30_addr)) {
     Serial.println(F("SGP30 sensor not available."));
-  else Serial.println(F("SGP30 sensor initiated."));
-  
-  Serial.print("SGP30 serial #: ");
-  Serial.print(sgp30_sn[0], HEX);
-  Serial.print(sgp30_sn[1], HEX);
-  Serial.println(sgp30_sn[2], HEX);
+    sgp_connected = false;
+  }
+  else {
+    Serial.println(F("SGP30 sensor initiated."));  
+    Serial.print("SGP30 serial #: ");
+    Serial.print(sgp30_sn[0], HEX);
+    Serial.print(sgp30_sn[1], HEX);
+    Serial.println(sgp30_sn[2], HEX);
+  }
 
     // OLED display intialisation
     if(!display.begin(SSD1306_SWITCHCAPVCC, SSD1306_addr, false, false)) { // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
@@ -235,23 +239,23 @@ void routine() {
     
     // run humidity correction on VOC sensor
 //    abs_hum = getAbsoluteHumidity(temperature, humidity);//2167 * humidity * 6112 / (273150 + temperature) * exp(1762 * temperature / (24312 + 10*temperature)); // [mg/m^3]
-    if (!SGP30_setHumidity(abs_hum)) Serial.println(F("SGP humidity correction failed."));
-    else Serial.println(F("SGP humidity corrected."));
+//    if (!SGP30_setHumidity(abs_hum)) Serial.println(F("SGP humidity correction failed."));
+//    else Serial.println(F("SGP humidity corrected."));
    
-    SGP30_measure();
+    if (sgp_connected) SGP30_measure();
 //    Serial.print("TVOC "); Serial.print(TVOC); Serial.print(" ppb\t");
 //    Serial.print("eCO2 "); Serial.print(eCO2); Serial.println(" ppm");
 
     // optional: set baseline recorded or saved in non-volatile memory
-    if (counter%6 == 0) {
-      uint16_t TVOC_base, eCO2_base;
-      if (!SGP30_getIAQBaseline(&eCO2_base, &TVOC_base)) {
-        Serial.println("Failed to get baseline readings");
-        return;
-      }
-      Serial.print("****Baseline values: eCO2: 0x"); Serial.print(eCO2_base, HEX);
-      Serial.print(" & TVOC: 0x"); Serial.println(TVOC_base, HEX);
-    }
+//    if (counter%6 == 0) {
+//      uint16_t TVOC_base, eCO2_base;
+//      if (!SGP30_getIAQBaseline(&eCO2_base, &TVOC_base)) {
+//        Serial.println("Failed to get baseline readings");
+//        return;
+//      }
+//      Serial.print("****Baseline values: eCO2: 0x"); Serial.print(eCO2_base, HEX);
+//      Serial.print(" & TVOC: 0x"); Serial.println(TVOC_base, HEX);
+//    }
 
     if (gps.location.isUpdated()) {
         gpsUpdated = 1;
@@ -337,16 +341,16 @@ void updateDisplay() {
       display.setCursor(16, 0); display.setTextSize(2); display.print(String(round(mc_2p5)).substring(0,5));
       display.setCursor(16, 16); display.setTextSize(1); display.println("ug/m3");
       
-      display.setCursor(0, 34); display.setTextSize(1); display.print("VOC");
-      display.setCursor(16, 34); display.setTextSize(2); display.print(String(TVOC).substring(0,5));
-      display.setCursor(16, 50); display.setTextSize(1); display.println("ppb");
+      display.setCursor(0, 32); display.setTextSize(1); display.print("VOC");
+      display.setCursor(16, 32); display.setTextSize(2); display.print(String(TVOC).substring(0,5));
+      display.setCursor(16, 48); display.setTextSize(1); display.println("ppb");
       
-      display.setCursor(0, 66); display.setTextSize(1); display.print("CO2");
-      display.setCursor(16, 66); display.setTextSize(2); display.print(String(eCO2).substring(0,5));
-      display.setCursor(16, 82); display.setTextSize(1); display.println("ppm");
+      display.setCursor(0, 64); display.setTextSize(1); display.print("CO2");
+      display.setCursor(16, 64); display.setTextSize(2); display.print(String(eCO2).substring(0,5));
+      display.setCursor(16, 80); display.setTextSize(1); display.println("ppm");
       
-      display.setCursor(0, 98); display.setTextSize(1); display.print("T");
-      display.setCursor(16, 98); display.setTextSize(2); display.print(String(round(temperature))+" C");
+      display.setCursor(0, 96); display.setTextSize(1); display.print("T");
+      display.setCursor(16, 96); display.setTextSize(2); display.print(String(round(temperature))+" C");
       display.setCursor(0, 114); display.setTextSize(1); display.print("RH");
       display.setCursor(16, 114); display.setTextSize(2); display.print(String(round(humidity))+" %");
       display.display();
