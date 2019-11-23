@@ -1,6 +1,7 @@
-﻿## bp_v8 is the code for our new PCB that has a VOC gas sensor on board. It also includes a vertical mode for the OLED display.
+﻿## v9 discontinues support for ublox GPS but SIM868 is now supported (GPS and GSM). For ublox GPS please flash v8
 
 ### Features
+- SIM868 GSM wireless transmission
 - HM10 Bluetooth transmission (not yet implemented in code)
 - SGP30 TVOC / eCO2 sensor
 - SHT31 Humidity / Temparature sensor

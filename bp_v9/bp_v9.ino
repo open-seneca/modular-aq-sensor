@@ -1,4 +1,3 @@
-#include <TinyGPS++.h>
 #include <SPI.h>
 #include <SD.h>
 #include <Wire.h> // BUFFER_LENGTH 32 in WireBase.h and Wire_slave.cpp has been increased to 64 to read full SPS30 buffer (download from our Github)
@@ -23,21 +22,37 @@
 #define SGP30_CRC8_INIT 0xFF       ///< Init value for CRC
 #define SGP30_WORD_LEN 2           ///< 2 bytes per word
 
+// tinyGSM here
+#define TINY_GSM_MODEM_SIM808
+// set GSM PIN, if any
+#define GSM_PIN ""
+// Your GPRS credentials, if any
+const char apn[]  = "TM";
+const char gprsUser[] = "";
+const char gprsPass[] = "";
+#include <TinyGsmClient.h>
+TinyGsm modem(Serial1);
+TinyGsmClient client(modem);
+boolean sim868_connected = false;
+
+int year, month, day, hour, minute, second, alt=0, vsat=0, usat=0;
+float speed=0;
+String lat="0", lon="0";
+
+// OLED here
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
 #define SCREEN_HEIGHT 64 // OLED display height, in pixels
-//#define LANDSCAPE // OLED display rotation
+#define ROTATION 1 // OLED display rotation // 0: landscape, 1: portrait, 3: portrait2
 
 // Declaration for an SSD1306 display connected to I2C (SDA, SCL pins)
 #define OLED_RESET     4 // Reset pin # (or -1 if sharing Arduino reset pin)
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 bool display_connected = true; // does not seem to work yet, implement i2c address check at bootup
 
-String code_version = "BlackPill_v8";
+String code_version = "BlackPill_v9";
 String header = "Counter,Latitude,Longitude,gpsUpdated,Speed,Altitude,Satellites,Date,Time,Millis,PM1.0,PM2.5,PM4.0,PM10,Temperature,Humidity,NC0.5,NC1.0,NC2.5,NC4.0,NC10,TypicalParticleSize,TVOC,eCO2,BatteryVIN";
 
 
-// The TinyGPS++ object
-TinyGPSPlus gps;
 File myFile;
 String filename;
 uint32_t mtime;
@@ -61,8 +76,6 @@ String sps30_sn;
 
 //GSM module
 String imei = "", cnum = "", payload = "";
-bool sim_connected = false;
-bool gps_connected = true;
 
 float vin = 0, temperature = 20.0f, humidity = 50.0f;
 int counter=0, gpsUpdated = 0;
@@ -72,31 +85,11 @@ void setup() {
     // set up LEDs and turn on
     pinMode(LED, OUTPUT);
     digitalWrite(LED, HIGH);
-    // flash the PCB LED
-    // pins tested -> works
-    // Buenos Aires PCB LEDs do not flash
-//    pinMode(GREEN, OUTPUT);
-//    pinMode(RED, OUTPUT);
-//    pinMode(BLUE, OUTPUT);
-//    for (int i=0; i<10; i++) {
-//      digitalWrite(BLUE, HIGH);
-//      digitalWrite(GREEN, LOW);
-//      digitalWrite(RED, LOW);
-//      delay(300);    
-//      digitalWrite(BLUE, LOW);
-//      digitalWrite(GREEN, HIGH);
-//      digitalWrite(RED, LOW);
-//      delay(300);
-//      digitalWrite(BLUE, LOW);
-//      digitalWrite(GREEN, LOW);
-//      digitalWrite(RED, HIGH);
-//      delay(300);
-//    }   
     
     // Open serial communications and wait for port to open:
-    Serial.begin(9600);
-    Serial1.begin(9600);
-    Serial2.begin(9600); // GPS baudrate is 9600
+    Serial.begin(9600); // Bluetooth
+    Serial1.begin(9600); // SIM868
+//    Serial2.begin(9600); // ublox GPS, not needed for v9 upwards
     delay(50); 
 
     // check if battery level is OK and output it to debug output
@@ -163,27 +156,45 @@ void setup() {
     SPS30_cleaning();
     sps30_sn = SPS30_getSerialNumber();
 
-    // Initialise GSM
-    //while (Serial1.available() > 0){ 
-    if (!initSIM()) Serial.println("GSM module not available.");
-    else {    
-      Serial.print(F("GSM module found, IMEI: "));
-      Serial.println(imei);
-      if (cnum != "") {
-        Serial.print(F("SIM card number: "));
-        Serial.println(cnum);
-      }
-      else Serial.println(F("No SIM card."));
+// old
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//    // Initialise GSM
+//    //while (Serial1.available() > 0){ 
+//    if (!initSIM()) Serial.println("GSM module not available.");
+//    else {    
+//      Serial.print(F("GSM module found, IMEI: "));
+//      Serial.println(imei);
+//      if (cnum != "") {
+//        Serial.print(F("SIM card number: "));
+//        Serial.println(cnum);
+//      }
+//      else Serial.println(F("No SIM card."));
+//    }
+//    
+//    delay(50);
+//    // print whether GPS data communication is enabled or not
+//    if (Serial2.available() > 0) {
+//        Serial.println(F("GPS module found."));
+//    } else {
+//        gps_connected = false;
+//        Serial.println(F("GPS module not available."));
+//    }
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // Restart takes quite some time
+    // To skip it, call init() instead of restart()
+    Serial.println("Initializing modem...");
+    if (modem.restart()) {
+      sim868_connected = true;
+      String modemInfo = modem.getModemInfo();
+      Serial.print("Modem Info: ");
+      Serial.println(modemInfo);
+      modem.gprsDisconnect();
+      Serial.println("Activating GPS...");
+      if (modem.enableGPS()) Serial.println("Success");
+      else Serial.println("Fail");
     }
-    
-    delay(50);
-    // print whether GPS data communication is enabled or not
-    if (Serial2.available() > 0) {
-        Serial.println(F("GPS module found."));
-    } else {
-        gps_connected = false;
-        Serial.println(F("GPS module not available."));
-    }
+    else Serial.println("SIM868 not available.");
+
  
     // open the file. Note that only one file can be open at a time,so you have to close this one before opening another.
     filename = getNextName();
@@ -210,11 +221,6 @@ void setup() {
 }
 
 void loop() {    
-    // wait until GPS is available
-    while (gps_connected && Serial2.available() > 0) {
-        // read & encode GPS data
-        gps.encode(Serial2.read());
-    }
     // check that 3 seconds have passed, since this is our data collection timeframe
     if (millis() - mtime > 5000) {
       routine();
@@ -257,19 +263,23 @@ void routine() {
 //      Serial.print(" & TVOC: 0x"); Serial.println(TVOC_base, HEX);
 //    }
 
-    if (gps.location.isUpdated()) {
-        gpsUpdated = 1;
+    lat="0", lon="0", speed=0, alt=0, vsat=0, usat=0; // viewed/used satellites
+    if (sim868_connected) {
+      Serial.println(modem.getGPSraw());
+      modem.getGPSTime(&year, &month, &day, &hour, &minute, &second);
+      if (modem.getGPS(&lat, &lon, &speed, &alt, &vsat, &usat)) gpsUpdated = 1;
+      else gpsUpdated = 0;
     }
     
     payload = String(counter) + "," +
-              String(gps.location.lat(), 6) + "," + 
-              String(gps.location.lng(), 6) + "," + 
+              lat + "," + 
+              lon + "," + 
               String(gpsUpdated)+ "," + 
-              String(gps.speed.kmph()) + "," + 
-              String(gps.altitude.meters()) + "," + 
-              String(gps.satellites.value())+ "," + 
-              String(formatDate())+ "," + 
-              String(formatTime())+ "," + 
+              String(speed) + "," + 
+              String(alt) + "," + 
+              String(vsat)+ "," + 
+              String(formatDate())+ "," +
+              String(formatTime())+ "," +
               String(mtime)+ "," + 
               String(mc_1p0)+ "," + 
               String(mc_2p5)+ "," + 
@@ -286,7 +296,7 @@ void routine() {
               String(TVOC)+ "," + 
               String(eCO2)+ "," + 
               String(vin);
-    if (imei != "") uploadSIM(payload);
+//    if (imei != "") uploadSIM(payload); //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     
     // open file to write sensor data
     myFile = SD.open(String(filename) + ".csv", FILE_WRITE);
@@ -312,18 +322,59 @@ void routine() {
     mtime = millis();
   
     counter++;
-    gpsUpdated = 0;
 }
 
 void updateDisplay() {  
     // show on OLED
     // row 0-15 are yellow, 16-63 blue
-    display.clearDisplay(); 
-    #ifdef LANDSCAPE
+    display.clearDisplay();   
+    #if ROTATION == 1
+      display.setRotation(1);
+      display.setCursor(0, 0); display.setTextSize(1); display.println("PM2");
+      display.setCursor(16, 0); display.setTextSize(2); display.print(String(mc_2p5).substring(0,5));
+      display.setCursor(16, 16); display.setTextSize(1); display.println("ug/m3");
+      
+      display.setCursor(0, 28); display.setTextSize(1); display.print("VOC");
+      display.setCursor(16, 28); display.setTextSize(2); display.print(String(TVOC).substring(0,5));
+      display.setCursor(16, 44); display.setTextSize(1); display.println("ppb");
+      
+      display.setCursor(0, 60); display.setTextSize(1); display.print("CO2");
+      display.setCursor(16, 60); display.setTextSize(2); display.print(String(eCO2).substring(0,5));
+      display.setCursor(16, 76); display.setTextSize(1); display.println("ppm");
+      
+      display.setCursor(0, 88); display.setTextSize(1); display.print("T");
+      display.setCursor(16, 88); display.setTextSize(2); display.print(String(round(temperature))+" C");
+      display.setCursor(0, 106); display.setTextSize(1); display.print("RH");
+      display.setCursor(16, 106); display.setTextSize(2); display.print(String(round(humidity))+" %");
+
+      display.setCursor(0, 120); display.setTextSize(1); 
+      for (int i=0; i<vsat; i++) display.print(".");
+    #elif ROTATION == 3
+      display.setRotation(3);
+      display.setCursor(48, 0); display.setTextSize(1); display.println("PM");
+      display.setCursor(0, 0); display.setTextSize(2); display.print(String(mc_2p5).substring(0,5));
+      display.setCursor(0, 16); display.setTextSize(1); display.println("ug/m3");
+      
+      display.setCursor(48, 28); display.setTextSize(1); display.print("VO");
+      display.setCursor(0, 28); display.setTextSize(2); display.print(String(TVOC).substring(0,5));
+      display.setCursor(0, 44); display.setTextSize(1); display.println("ppb");
+      
+      display.setCursor(48, 60); display.setTextSize(1); display.print("CO");
+      display.setCursor(0, 60); display.setTextSize(2); display.print(String(eCO2).substring(0,5));
+      display.setCursor(0, 76); display.setTextSize(1); display.println("ppm");
+      
+      display.setCursor(48, 88); display.setTextSize(1); display.print("T");
+      display.setCursor(0, 88); display.setTextSize(2); display.print(String(round(temperature))+" C");
+      display.setCursor(48, 106); display.setTextSize(1); display.print("RH");
+      display.setCursor(0, 106); display.setTextSize(2); display.print(String(round(humidity))+" %");
+
+      display.setCursor(0, 120); display.setTextSize(1); 
+      for (int i=0; i<vsat; i++) display.print(".");
+    #else // rotation 0
       display.setTextSize(1); 
 //      display.setTextColor(WHITE);
       display.setCursor(0, 0);
-      display.print(String(gps.time.hour())+F(":")+String(gps.time.minute()));
+      display.print(String(hour)+F(":")+String(minute));
       display.setCursor(52, 0);
       display.print(String(round(humidity))+F(" %"));
       display.setCursor(100, 0);
@@ -333,37 +384,18 @@ void updateDisplay() {
       display.setTextSize(1); display.println("ug/m3");    
       display.setCursor(0, 42);  
       display.setTextSize(3); display.print(String(TVOC).substring(0,5));
-      display.setTextSize(1); display.println("ppb");    
-      display.display();
-    #else
-      display.setRotation(1);
-      display.setCursor(0, 0); display.setTextSize(1); display.println("PM2");
-      display.setCursor(16, 0); display.setTextSize(2); display.print(String(mc_2p5).substring(0,5));
-      display.setCursor(16, 16); display.setTextSize(1); display.println("ug/m3");
-      
-      display.setCursor(0, 32); display.setTextSize(1); display.print("VOC");
-      display.setCursor(16, 32); display.setTextSize(2); display.print(String(TVOC).substring(0,5));
-      display.setCursor(16, 48); display.setTextSize(1); display.println("ppb");
-      
-      display.setCursor(0, 64); display.setTextSize(1); display.print("CO2");
-      display.setCursor(16, 64); display.setTextSize(2); display.print(String(eCO2).substring(0,5));
-      display.setCursor(16, 80); display.setTextSize(1); display.println("ppm");
-      
-      display.setCursor(0, 96); display.setTextSize(1); display.print("T");
-      display.setCursor(16, 96); display.setTextSize(2); display.print(String(round(temperature))+" C");
-      display.setCursor(0, 114); display.setTextSize(1); display.print("RH");
-      display.setCursor(16, 114); display.setTextSize(2); display.print(String(round(humidity))+" %");
-      display.display();
+      display.setTextSize(1); display.println("ppb"); 
     #endif
+    display.display();
 }
 
 // format date in the following format:
 // YYYYMMDD
 String formatDate() {
     String out = "";
-    out += gps.date.year();
-    out += formatInt(gps.date.month(), 2);
-    out += formatInt(gps.date.day(), 2);
+    out += String(year);
+    out += formatInt(month, 2);
+    out += formatInt(day, 2);
     return out;
 }
 
@@ -371,9 +403,9 @@ String formatDate() {
 // HHMMSS
 String formatTime() {
     String out = "";
-    out += formatInt(gps.time.hour(), 2);
-    out += formatInt(gps.time.minute(), 2);
-    out += formatInt(gps.time.second(), 2);
+    out += formatInt(hour, 2);
+    out += formatInt(minute, 2);
+    out += formatInt(second, 2);
     return out;
 }
 
@@ -446,106 +478,106 @@ boolean batteryOk() { // analog input can measure between 0 and supply voltage (
     return true;
 }
 
-boolean initSIM() {
-  long sim_start = millis();
-  bool module_present = 0;
-  
-  while ( millis() - sim_start < 5000 && module_present == 0) {
-      module_present = sendATcommand("AT+CFUN=1", "OK", 500);
-  }
-  
-  if (module_present == 0) return false; 
-  sendATcommand("AT+COPS=2", "OK", 2000);
-  sendATcommand("AT+COPS=0", "OK", 2000);
-  
-  while ( millis() - sim_start < 20000 && sim_connected == 0) {
-      if ( (sendATcommand("AT+CREG?", "+CREG: 1,1", 500) == 1 || sendATcommand("AT+CREG?", "+CREG: 1,5", 500) == 1 ||
-           sendATcommand("AT+CREG?", "+CREG: 0,1", 500) == 1 || sendATcommand("AT+CREG?", "+CREG: 0,5", 500)) == 1 ){
-            sim_connected = 1;
-          } else {
-            sim_connected = 0;
-          }
-//      Serial.println(millis() - sim_start);
-//      Serial.println(sim_connected);
-  }
-  sendATcommand("AT+CGATT?", "+CGATT: 1", 1000);
-
-  delay(100);
-  imei = runCommand("AT+CGSN").substring(0,15);
-  delay(100);
-  cnum = runCommand("AT+CNUM").substring(13,27);
-  
-  sendATcommand("AT+CSQ", "OK", 1000);
-  sendATcommand("AT+SAPBR=3,1,\"Contype\",\"GPRS\"", "OK", 5000);
-  sendATcommand("AT+SAPBR=3,1,\"APN\",\"TM\"", "OK", 5000);
-  sendATcommand("AT+SAPBR=1,1", "OK", 1000);
-  sendATcommand("AT+SAPBR=2,1", "OK", 1000);
-  sendATcommand("AT+HTTPINIT", "OK", 1000); 
-  return true;
-}
-
-void uploadSIM(String payload) {
-  runCommand("AT+HTTPPARA=\"URL\",\"http://app.open-seneca.org/php/gsmUpload.php?imei=" + imei + "&simnumber=" + cnum + "&payload=" + payload + "\"");
-  if ( runCommand("AT+HTTPACTION=0") == "ERROR" && sim_connected == 1){
-    initSIM();
-  }
-  runCommand("AT+HTTPREAD");
-}
-  
-String runCommand(String cmd) {
-//  Serial.println(cmd);
-  Serial1.println(cmd);
-  delay(1000);
-  String resp = "";
-  
-  while(Serial1.available()) {
-    resp += (char)Serial1.read();
-  }
-
-  resp.replace("\r","");
-  resp.replace("\n","");
-
-  String filteredResp = "";
-  int i;
-  for(i = cmd.length(); i < resp.length(); i++) {
-      filteredResp += resp[i];
-  }
-
-//  Serial.println("filtered: " + filteredResp);
-  return filteredResp;
-}
-
-int8_t sendATcommand(char* ATcommand, char* expected_answer, unsigned int timeout) {
-    uint8_t x=0,  answer=0;
-    char response[100];
-    unsigned long previous;
-
-    memset(response, '\0', 100);    // Initialice the string    
-    delay(100);
-    
-    while( Serial1.available() > 0) Serial1.read();    // Clean the input buffer
-    if (ATcommand[0] != '\0') {
-        Serial1.println(ATcommand);    // Send the AT command 
-    }
-    
-    x = 0;
-    previous = millis();
-
-    // this loop waits for the answer
-    do{
-        if(Serial1.available() != 0){    // if there are data in the UART input buffer, reads it and checks for the asnwer
-            response[x] = Serial1.read();
-//            Serial.print(response[x]);
-            x++;
-            if (strstr(response, expected_answer) != NULL)    // check if the desired answer (OK) is in the response of the module
-            {
-                answer = 1;
-            }
-        }
-    }while((answer == 0) && ((millis() - previous) < timeout));    // Waits for the asnwer with time out
-
-    return answer;
-}
+//boolean initSIM() {
+//  long sim_start = millis();
+//  bool module_present = 0;
+//  
+//  while ( millis() - sim_start < 5000 && module_present == 0) {
+//      module_present = sendATcommand("AT+CFUN=1", "OK", 500);
+//  }
+//  
+//  if (module_present == 0) return false; 
+//  sendATcommand("AT+COPS=2", "OK", 2000);
+//  sendATcommand("AT+COPS=0", "OK", 2000);
+//  
+//  while ( millis() - sim_start < 20000 && sim_connected == 0) {
+//      if ( (sendATcommand("AT+CREG?", "+CREG: 1,1", 500) == 1 || sendATcommand("AT+CREG?", "+CREG: 1,5", 500) == 1 ||
+//           sendATcommand("AT+CREG?", "+CREG: 0,1", 500) == 1 || sendATcommand("AT+CREG?", "+CREG: 0,5", 500)) == 1 ){
+//            sim_connected = 1;
+//          } else {
+//            sim_connected = 0;
+//          }
+////      Serial.println(millis() - sim_start);
+////      Serial.println(sim_connected);
+//  }
+//  sendATcommand("AT+CGATT?", "+CGATT: 1", 1000);
+//
+//  delay(100);
+//  imei = runCommand("AT+CGSN").substring(0,15);
+//  delay(100);
+//  cnum = runCommand("AT+CNUM").substring(13,27);
+//  
+//  sendATcommand("AT+CSQ", "OK", 1000);
+//  sendATcommand("AT+SAPBR=3,1,\"Contype\",\"GPRS\"", "OK", 5000);
+//  sendATcommand("AT+SAPBR=3,1,\"APN\",\"TM\"", "OK", 5000);
+//  sendATcommand("AT+SAPBR=1,1", "OK", 1000);
+//  sendATcommand("AT+SAPBR=2,1", "OK", 1000);
+//  sendATcommand("AT+HTTPINIT", "OK", 1000); 
+//  return true;
+//}
+//
+//void uploadSIM(String payload) {
+//  runCommand("AT+HTTPPARA=\"URL\",\"http://app.open-seneca.org/php/gsmUpload.php?imei=" + imei + "&simnumber=" + cnum + "&payload=" + payload + "\"");
+//  if ( runCommand("AT+HTTPACTION=0") == "ERROR" && sim_connected == 1){
+//    initSIM();
+//  }
+//  runCommand("AT+HTTPREAD");
+//}
+//  
+//String runCommand(String cmd) {
+////  Serial.println(cmd);
+//  Serial1.println(cmd);
+//  delay(1000);
+//  String resp = "";
+//  
+//  while(Serial1.available()) {
+//    resp += (char)Serial1.read();
+//  }
+//
+//  resp.replace("\r","");
+//  resp.replace("\n","");
+//
+//  String filteredResp = "";
+//  int i;
+//  for(i = cmd.length(); i < resp.length(); i++) {
+//      filteredResp += resp[i];
+//  }
+//
+////  Serial.println("filtered: " + filteredResp);
+//  return filteredResp;
+//}
+//
+//int8_t sendATcommand(char* ATcommand, char* expected_answer, unsigned int timeout) {
+//    uint8_t x=0,  answer=0;
+//    char response[100];
+//    unsigned long previous;
+//
+//    memset(response, '\0', 100);    // Initialice the string    
+//    delay(100);
+//    
+//    while( Serial1.available() > 0) Serial1.read();    // Clean the input buffer
+//    if (ATcommand[0] != '\0') {
+//        Serial1.println(ATcommand);    // Send the AT command 
+//    }
+//    
+//    x = 0;
+//    previous = millis();
+//
+//    // this loop waits for the answer
+//    do{
+//        if(Serial1.available() != 0){    // if there are data in the UART input buffer, reads it and checks for the asnwer
+//            response[x] = Serial1.read();
+////            Serial.print(response[x]);
+//            x++;
+//            if (strstr(response, expected_answer) != NULL)    // check if the desired answer (OK) is in the response of the module
+//            {
+//                answer = 1;
+//            }
+//        }
+//    }while((answer == 0) && ((millis() - previous) < timeout));    // Waits for the asnwer with time out
+//
+//    return answer;
+//}
 
 // Calculating checksum. Function provided in SPS30 datasheet
 byte CalcCrc(byte data[2]) {
@@ -845,6 +877,36 @@ boolean SGP30_setHumidity(uint32_t absolute_humidity) {
   command[4] = SGP30_generateCRC(command + 2, 2);
 
   return readWordFromCommand(command, 5, 10, 0, 0);
+}
+
+bool getGPS() {
+  //String buffer = "";
+  // char chr_buffer[12];
+  bool fix = false;
+
+  Serial1.write("AT+CGNSINF"); //sendAT(GF("+CGNSINF"));
+  delay(200);
+
+  Serial1.readStringUntil(','); // mode
+  if ( Serial1.readStringUntil(',').toInt() == 1 ) fix = true;
+  Serial1.readStringUntil(','); //utctime
+  lat =  Serial1.readStringUntil(',').toFloat(); //lat
+  lon =  Serial1.readStringUntil(',').toFloat(); //lon
+  if (alt != NULL) alt =  Serial1.readStringUntil(',').toFloat(); // altitude
+  if (speed != NULL) speed = Serial1.readStringUntil(',').toFloat(); //speed
+  Serial1.readStringUntil(',');
+  Serial1.readStringUntil(',');
+  Serial1.readStringUntil(',');
+  Serial1.readStringUntil(',');
+  Serial1.readStringUntil(',');
+  Serial1.readStringUntil(',');
+  Serial1.readStringUntil(',');
+  if (vsat != NULL) vsat = Serial1.readStringUntil(',').toInt(); //viewed satelites
+  if (usat != NULL) usat = Serial1.readStringUntil(',').toInt(); //used satelites
+  Serial1.readStringUntil('\n');
+  delay(10);
+
+  return fix;
 }
 
 // encode a 28 digit number String into a 12 byte ASCII string
