@@ -216,7 +216,7 @@ void loop() {
         gps.encode(Serial2.read());
     }
     // check that 3 seconds have passed, since this is our data collection timeframe
-    if (millis() - mtime > 5000) {
+    if (millis() - mtime > 1000) {
       routine();
     }
 } //end loop
