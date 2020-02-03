@@ -9,7 +9,7 @@ Please refer to our wiki page to learn about the assembly of the hardware to bui
 
 http://wiki.cambikesensor.net
 
-![alt text](https://raw.githubusercontent.com/sh969/Open-Seneca/master/photo.png)
+![alt text](https://raw.githubusercontent.com/sh969/Open-Seneca/master/photo_v9.jpeg)
 
 If you have built your kit and want to flash the code to the Black Pill board, here is how:
 
