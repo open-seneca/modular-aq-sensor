@@ -7,7 +7,7 @@ http://app.open-seneca.org
 
 Please refer to our wiki page to learn about the assembly of the hardware to build a CamBike sensor youself:
 
-http://wiki.cambikesensor.net
+http://wiki.open-seneca.org
 
 ![alt text](https://raw.githubusercontent.com/sh969/Open-Seneca/master/photo_v9.jpeg)
 
