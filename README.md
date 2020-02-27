@@ -5,10 +5,6 @@ If you already have a sensor and want to upload and visualise your data you can 
 
 http://app.open-seneca.org
 
-Please refer to our wiki page to learn about the assembly of the hardware to build a CamBike sensor youself:
-
-http://wiki.open-seneca.org
-
 ![alt text](https://raw.githubusercontent.com/sh969/Open-Seneca/master/photo_v9.jpeg)
 
 If you have built your kit and want to flash the code to the Black Pill board, here is how:
