@@ -1,7 +1,7 @@
 ![alt text](https://raw.githubusercontent.com/sh969/Open-Seneca/master/logo.png)
 
 Download v8 for the last version with ublox GPS support, 
-v9 (latest) for SIM868 GPS and GSM support.
+v9 (latest) for SIM868 GPS and GSM support. Use the TinyGSM library from this repository if you experience errors compiling.
 
 If you already have a sensor and want to upload and visualise your data you can create an account here:
 
