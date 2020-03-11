@@ -195,7 +195,7 @@ void setup() {
 
     // if the file opened okay, write to it:
     if (myFile) {
-        myFile.print(code_version); myFile.print(", IMEI: "); myFile.print(imei); myFile.print(", SIM card number: "); myFile.print(cnum); myFile.print(", SPS30 SN: "); myFile.println(sps30_sn); myFile.print(", SGP30 SN: "); Serial.print(sgp30_sn[0], HEX); Serial.print(sgp30_sn[1], HEX); Serial.println(sgp30_sn[2], HEX);
+        myFile.print(code_version); myFile.print(", IMEI: "); myFile.print(imei); myFile.print(", SIM card number: "); myFile.print(cnum); myFile.print(", SPS30 SN: "); myFile.print(sps30_sn); myFile.print(", SGP30 SN: "); Serial.print(sgp30_sn[0], HEX); Serial.print(sgp30_sn[1], HEX); Serial.print(sgp30_sn[2], HEX); Serial.println();
         myFile.println(header);
         
         // close the file:
