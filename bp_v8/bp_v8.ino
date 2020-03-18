@@ -65,7 +65,7 @@ bool sim_connected = false;
 bool gps_connected = true;
 
 float vin = 0, temperature = 20.0f, humidity = 50.0f;
-int counter=0, gpsUpdated = 0;
+int counter=0, gpsUpdated=0, vsat=0;
 uint32_t abs_hum = 0.0f;
 
 void setup() {
@@ -195,7 +195,8 @@ void setup() {
 
     // if the file opened okay, write to it:
     if (myFile) {
-        myFile.print(code_version); myFile.print(", IMEI: "); myFile.print(imei); myFile.print(", SIM card number: "); myFile.print(cnum); myFile.print(", SPS30 SN: "); myFile.print(sps30_sn); myFile.print(", SGP30 SN: "); Serial.print(sgp30_sn[0], HEX); Serial.print(sgp30_sn[1], HEX); Serial.print(sgp30_sn[2], HEX); Serial.println();
+        myFile.print(code_version); myFile.print(", IMEI: "); myFile.print(imei); myFile.print(", SIM card number: "); myFile.print(cnum); myFile.print(", SPS30 SN: "); myFile.println(sps30_sn); //myFile.print(", SGP30 SN: "); Serial.print(sgp30_sn[0], HEX); Serial.print(sgp30_sn[1], HEX); Serial.print(sgp30_sn[2], HEX);
+        delay(50);
         myFile.println(header);
         
         // close the file:
@@ -260,6 +261,8 @@ void routine() {
     if (gps.location.isUpdated()) {
         gpsUpdated = 1;
     }
+    if (String(gps.location.lat(), 6).substring(0,4) == "0.00") vsat = gps.satellites.value();
+    else vsat = 10;
     
     payload = String(counter) + "," +
               String(gps.location.lat(), 6) + "," + 
@@ -329,32 +332,34 @@ void updateDisplay() {
       display.setCursor(100, 0);
       display.println(String(round(temperature))+F(" C"));
       display.setCursor(0, 16); //display.println(); 
-      display.setTextSize(3); display.print(String(mc_2p5).substring(0,5));
+      display.setTextSize(3); display.print(String(vsat).substring(0,5)); //mc_2p5
       display.setTextSize(1); display.println("ug/m3");    
       display.setCursor(0, 42);  
       display.setTextSize(3); display.print(String(TVOC).substring(0,5));
       display.setTextSize(1); display.println("ppb");    
-      display.display();
     #else
       display.setRotation(1);
       display.setCursor(0, 0); display.setTextSize(1); display.println("PM2");
-      display.setCursor(16, 0); display.setTextSize(2); display.print(String(mc_2p5).substring(0,5));
+      display.setCursor(16, 0); display.setTextSize(2); display.print(String(mc_2p5).substring(0,4)); //mc_2p5
       display.setCursor(16, 16); display.setTextSize(1); display.println("ug/m3");
       
-      display.setCursor(0, 32); display.setTextSize(1); display.print("VOC");
-      display.setCursor(16, 32); display.setTextSize(2); display.print(String(TVOC).substring(0,5));
-      display.setCursor(16, 48); display.setTextSize(1); display.println("ppb");
+      display.setCursor(0, 28); display.setTextSize(1); display.print("VOC");
+      display.setCursor(16, 28); display.setTextSize(2); display.print(String(TVOC).substring(0,4));
+      display.setCursor(16, 44); display.setTextSize(1); display.println("ppb");
       
-      display.setCursor(0, 64); display.setTextSize(1); display.print("CO2");
-      display.setCursor(16, 64); display.setTextSize(2); display.print(String(eCO2).substring(0,5));
-      display.setCursor(16, 80); display.setTextSize(1); display.println("ppm");
+      display.setCursor(0, 60); display.setTextSize(1); display.print("CO2");
+      display.setCursor(16, 60); display.setTextSize(2); display.print(String(eCO2).substring(0,4));
+      display.setCursor(16, 76); display.setTextSize(1); display.println("ppm");
       
-      display.setCursor(0, 96); display.setTextSize(1); display.print("T");
-      display.setCursor(16, 96); display.setTextSize(2); display.print(String(round(temperature))+" C");
-      display.setCursor(0, 114); display.setTextSize(1); display.print("RH");
-      display.setCursor(16, 114); display.setTextSize(2); display.print(String(round(humidity))+" %");
-      display.display();
+      display.setCursor(0, 88); display.setTextSize(1); display.print("T");
+      display.setCursor(16, 88); display.setTextSize(2); display.print(String(round(temperature))+" C");
+      display.setCursor(0, 106); display.setTextSize(1); display.print("RH");
+      display.setCursor(16, 106); display.setTextSize(2); display.print(String(round(humidity))+" %");
+
+      display.setCursor(0, 120); display.setTextSize(1); 
+      for (int i=0; i<vsat; i++) display.print(".");
     #endif
+    display.display();
 }
 
 // format date in the following format:

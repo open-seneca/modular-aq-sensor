@@ -16,8 +16,9 @@ a) Wiring and onboard jumpers:
 - jumper B0+ to center pin, B1- to center pin
 
 b) To flash the code:
-- (install Arduino Due in IDE board manager)
+- install Arduino Due in IDE board manager
 - put Arduino_STM32 library (from the "hardware" folder in this repo) in "My Documents/Arduino/hardware" (Note: if the hardware folder doesn't exist you will need to create it)
+- do the same for the content of the "library" folder in this repo
 - start Arduino IDE and open the latest bp_vX from this repository
 - under "Tools -> Board" select "Generic STM32F103C series"
 - under "Tools -> Upload method" select Serial
