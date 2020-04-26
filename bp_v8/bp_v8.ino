@@ -201,6 +201,8 @@ void setup() {
         
         // close the file:
         myFile.close();
+    } else {
+        Serial.println(F("Could not write to file."));
     }
 
     // print the data to debug output as well
