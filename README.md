@@ -1,4 +1,4 @@
-![alt text](https://raw.githubusercontent.com/sh969/Open-Seneca/master/logo.png)
+![alt text](https://raw.githubusercontent.com/sh969/Open-Seneca/master/documentation/images/logo.png)
 
 Download v8 for the last version with ublox GPS support, 
 v9 (latest) for SIM868 GPS and GSM support.
@@ -7,7 +7,7 @@ If you already have a sensor and want to upload and visualise your data you can 
 
 http://app.open-seneca.org
 
-![alt text](https://raw.githubusercontent.com/sh969/Open-Seneca/master/photo_v9.jpeg)
+![alt text](https://raw.githubusercontent.com/sh969/Open-Seneca/master/documentation/images/photo_v9.jpeg)
 
 If you have built your kit and want to flash the code to the Black Pill board, here is how:
 
