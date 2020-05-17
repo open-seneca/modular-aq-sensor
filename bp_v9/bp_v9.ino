@@ -30,6 +30,7 @@
 const char apn[]  = "TM";
 const char gprsUser[] = "";
 const char gprsPass[] = "";
+// #define TINY_GSM_DEBUG Serial
 #include <TinyGsmClient.h>
 TinyGsm modem(Serial1);
 TinyGsmClient client(modem);
@@ -88,7 +89,7 @@ void setup() {
     
     // Open serial communications and wait for port to open:
     Serial.begin(9600); // Bluetooth
-    Serial1.begin(9600); // SIM868
+    Serial1.begin(TinyGsmAutoBaud(Serial1)); // SIM868
 //    Serial2.begin(9600); // ublox GPS, not needed for v9 upwards
     delay(50); 
 
@@ -183,17 +184,13 @@ void setup() {
     // Restart takes quite some time
     // To skip it, call init() instead of restart()
     Serial.println("Initializing modem...");
-    if (modem.restart()) {
+    if (modem.restart()) Serial.println("SIM card found");
+    else Serial.println("No SIM card found");
+    if (modem.enableGPS()) {
       sim868_connected = true;
-      String modemInfo = modem.getModemInfo();
-      Serial.print("Modem Info: ");
-      Serial.println(modemInfo);
-      modem.gprsDisconnect();
-      Serial.println("Activating GPS...");
-      if (modem.enableGPS()) Serial.println("Success");
-      else Serial.println("Fail");
+      Serial.println("GPS activated");
     }
-    else Serial.println("SIM868 not available.");
+    else Serial.println("No GPS module found");
 
  
     // open the file. Note that only one file can be open at a time,so you have to close this one before opening another.
@@ -206,7 +203,7 @@ void setup() {
 
     // if the file opened okay, write to it:
     if (myFile) {
-        myFile.print(code_version); myFile.print(", IMEI: "); myFile.print(imei); myFile.print(", SIM card number: "); myFile.print(cnum); myFile.print(", SPS30 SN: "); myFile.print(sps30_sn); myFile.print(", SGP30 SN: "); Serial.print(sgp30_sn[0], HEX); Serial.print(sgp30_sn[1], HEX); Serial.print(sgp30_sn[2], HEX); Serial.println();
+        myFile.print(code_version); myFile.print(", IMEI: "); myFile.print(imei); myFile.print(", SIM card number: "); myFile.print(cnum); myFile.print(", SPS30 SN: "); myFile.print(sps30_sn); myFile.print(", SGP30 SN: "); myFile.print(sgp30_sn[0], HEX); myFile.print(sgp30_sn[1], HEX); myFile.print(sgp30_sn[2], HEX); myFile.println();
         myFile.println(header);
         
         // close the file:
@@ -222,7 +219,7 @@ void setup() {
 
 void loop() {    
     // check that 3 seconds have passed, since this is our data collection timeframe
-    if (millis() - mtime > 5000) {
+    if (millis() - mtime > 1000) {
       routine();
     }
 } //end loop
@@ -269,6 +266,7 @@ void routine() {
       modem.getGPSTime(&year, &month, &day, &hour, &minute, &second);
       if (modem.getGPS(&lat, &lon, &speed, &alt, &vsat, &usat)) gpsUpdated = 1;
       else gpsUpdated = 0;
+      if (lat == "") lat = lon = "0";
     }
     
     payload = String(counter) + "," +
@@ -331,15 +329,15 @@ void updateDisplay() {
     #if ROTATION == 1
       display.setRotation(1);
       display.setCursor(0, 0); display.setTextSize(1); display.println("PM2");
-      display.setCursor(16, 0); display.setTextSize(2); display.print(String(mc_2p5).substring(0,5));
+      display.setCursor(16, 0); display.setTextSize(2); display.print(String(mc_2p5).substring(0,4));
       display.setCursor(16, 16); display.setTextSize(1); display.println("ug/m3");
       
       display.setCursor(0, 28); display.setTextSize(1); display.print("VOC");
-      display.setCursor(16, 28); display.setTextSize(2); display.print(String(TVOC).substring(0,5));
+      display.setCursor(16, 28); display.setTextSize(2); display.print(String(TVOC).substring(0,4));
       display.setCursor(16, 44); display.setTextSize(1); display.println("ppb");
       
       display.setCursor(0, 60); display.setTextSize(1); display.print("CO2");
-      display.setCursor(16, 60); display.setTextSize(2); display.print(String(eCO2).substring(0,5));
+      display.setCursor(16, 60); display.setTextSize(2); display.print(String(eCO2).substring(0,4));
       display.setCursor(16, 76); display.setTextSize(1); display.println("ppm");
       
       display.setCursor(0, 88); display.setTextSize(1); display.print("T");
@@ -352,15 +350,15 @@ void updateDisplay() {
     #elif ROTATION == 3
       display.setRotation(3);
       display.setCursor(48, 0); display.setTextSize(1); display.println("PM");
-      display.setCursor(0, 0); display.setTextSize(2); display.print(String(mc_2p5).substring(0,5));
+      display.setCursor(0, 0); display.setTextSize(2); display.print(String(mc_2p5).substring(0,4));
       display.setCursor(0, 16); display.setTextSize(1); display.println("ug/m3");
       
       display.setCursor(48, 28); display.setTextSize(1); display.print("VO");
-      display.setCursor(0, 28); display.setTextSize(2); display.print(String(TVOC).substring(0,5));
+      display.setCursor(0, 28); display.setTextSize(2); display.print(String(TVOC).substring(0,4));
       display.setCursor(0, 44); display.setTextSize(1); display.println("ppb");
       
       display.setCursor(48, 60); display.setTextSize(1); display.print("CO");
-      display.setCursor(0, 60); display.setTextSize(2); display.print(String(eCO2).substring(0,5));
+      display.setCursor(0, 60); display.setTextSize(2); display.print(String(eCO2).substring(0,4));
       display.setCursor(0, 76); display.setTextSize(1); display.println("ppm");
       
       display.setCursor(48, 88); display.setTextSize(1); display.print("T");
