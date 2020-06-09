@@ -63,8 +63,8 @@ Adafruit_SHT31 sht31 = Adafruit_SHT31();
 
 // VOC sensor SGP30
 uint16_t sgp30_sn[3];
-int16_t TVOC = -1; // Total Volatile Organic Compounds in ppb
-int16_t eCO2 = -1; // Equivalent CO2 in ppm
+uint16_t TVOC = 0; // Total Volatile Organic Compounds in ppb
+uint16_t eCO2 = 0; // Equivalent CO2 in ppm
 bool sgp_connected = true;
 
 // PM sensor SPS30

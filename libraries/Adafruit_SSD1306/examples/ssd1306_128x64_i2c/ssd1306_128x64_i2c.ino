@@ -54,20 +54,23 @@ static const unsigned char PROGMEM logo_bmp[] =
 
 void setup() {
   Serial.begin(9600);
-
+  Serial.println("test");
   // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
-  if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3D)) { // Address 0x3D for 128x64
+  if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C, false, false)) { // Address 0x3D for 128x64
     Serial.println(F("SSD1306 allocation failed"));
     for(;;); // Don't proceed, loop forever
   }
+  Serial.println("init success");
 
   // Show initial display buffer contents on the screen --
   // the library initializes this with an Adafruit splash screen.
   display.display();
+  Serial.println("display success");
   delay(2000); // Pause for 2 seconds
 
   // Clear the buffer
   display.clearDisplay();
+  Serial.println("cleared");
 
   // Draw a single pixel in white
   display.drawPixel(10, 10, WHITE);
@@ -80,6 +83,8 @@ void setup() {
   // unless that's what you want...rather, you can batch up a bunch of
   // drawing operations and then update the screen all at once by calling
   // display.display(). These examples demonstrate both approaches...
+  
+  Serial.println("drawing...");
 
   testdrawline();      // Draw many lines
 
