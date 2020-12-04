@@ -2,10 +2,10 @@
 
 | PCB version | Code version | Name | Pilot date | Lifecycle |
 | :---: | :---: | :---: | :---: | :---: |
-| v0 | v4 | CamBike sensor | Aug-18 | discontinued |
-| v1 | v7 | Argentina 19 | May-19 | discontinued |
-| v2 | v8/v9 | Kenya 20 | Mar-20 | in stock |
 | v3 | v10 | Europe 21 | Feb-21 | in production |
+| v2 | v8/v9 | Kenya 20 | Mar-20 | in stock |
+| v1 | v7 | Argentina 19 | May-19 | discontinued |
+| v0 | v4 | CamBike sensor | Aug-18 | discontinued |
 
 We are currently working on v3 of our sensor for pilots in Stockholm, Lisbon, Scotland and Belo Horizonte in early 2021. This version will come with a range of components pre-assembled, will be smaller and easier to build.
 
