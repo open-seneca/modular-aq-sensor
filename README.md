@@ -7,12 +7,12 @@
 | v2 | v8/v9 | Kenya 20 | Mar-20 | in stock |
 | v3 | v10 | Europe 21 | Feb-21 | in production |
 
-We are currently working on v3 of our sensor for pilots in Stockholm, Lisbon, Scotland and Belo Horizonte in early 2021. This version will come with a range of components pre-assembled, will be smaller and easy to build.
+We are currently working on v3 of our sensor for pilots in Stockholm, Lisbon, Scotland and Belo Horizonte in early 2021. This version will come with a range of components pre-assembled, will be smaller and easier to build.
 
 If you already have a sensor and want to upload and visualise your data you can create an account here:
 http://app.open-seneca.org
 
-![alt text](https://raw.githubusercontent.com/sh969/Open-Seneca/master/documentation/pcb_v3/pcb-png)
+![alt text](https://raw.githubusercontent.com/open-seneca/modular-aq-sensor/master/documentation/pcb_v3/pcb.png)
 
 If you have built your kit and want to flash the code to the Black Pill board, here is how:
 
