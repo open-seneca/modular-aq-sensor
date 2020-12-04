@@ -1,7 +1,7 @@
 ![alt text](https://raw.githubusercontent.com/sh969/Open-Seneca/master/documentation/logo.png)
 
-| PCB version | Code version | Pilot date | Lifecycle |
-| :---: | :---: | :---: | :---: |
+| PCB version | Code version | Name | Pilot date | Lifecycle |
+| :---: | :---: | :---: | :---: | :---: |
 | v0 | v4 | CamBike sensor | Aug-18 | discontinued |
 | v1 | v7 | Argentina 19 | May-19 | discontinued |
 | v2 | v8/v9 | Kenya 20 | Mar-20 | in stock |
