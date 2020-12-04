@@ -1,4 +1,5 @@
-﻿## v9 discontinues support for ublox GPS but SIM868 is now supported (GPS and GSM). For ublox GPS please flash v8
+﻿## SIM868 GPS+GSM version
+## v9 discontinues support for ublox GPS but is now supported (GPS and GSM). For ublox GPS please flash v8
 
 ## If you experience compilation errors with v9, please check you have the TinyGSM library from this repository and acticate the 128kB memory option for the STM32 in the Arduino IDE (under 'Tools').
 

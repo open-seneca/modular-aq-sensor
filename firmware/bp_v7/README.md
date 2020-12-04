@@ -1,4 +1,4 @@
-﻿## Important: bp_v7 is an improved code for the Kenya prototype (originally bp_v6). It adds support for an OLED display and GPS is now optional.
+﻿## Important: bp_v7 is an improved code (originally bp_v6). It adds support for an OLED display and GPS is now optional.
 
 ### New features
 - SIM800L GSM wireless transmission

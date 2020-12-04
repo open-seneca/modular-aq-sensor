@@ -1,13 +1,18 @@
-![alt text](https://raw.githubusercontent.com/sh969/Open-Seneca/master/documentation/images/logo.png)
+![alt text](https://raw.githubusercontent.com/sh969/Open-Seneca/master/documentation/logo.png)
 
-Download v8 for the last version with ublox GPS support, 
-v9 (latest) for SIM868 GPS and GSM support.
+| PCB version | Code version | Pilot date | Lifecycle |
+| :---: | :---: | :---: | :---: |
+| v0 | v4 | CamBike sensor | Aug-18 | discontinued |
+| v1 | v7 | Argentina 19 | May-19 | discontinued |
+| v2 | v8/v9 | Kenya 20 | Mar-20 | in stock |
+| v3 | v10 | Europe 21 | Feb-21 | in production |
+
+We are currently working on v3 of our sensor for pilots in Stockholm, Lisbon, Scotland and Belo Horizonte in early 2021. This version will come with a range of components pre-assembled, will be smaller and easy to build.
 
 If you already have a sensor and want to upload and visualise your data you can create an account here:
-
 http://app.open-seneca.org
 
-![alt text](https://raw.githubusercontent.com/sh969/Open-Seneca/master/documentation/images/photo_v9.jpeg)
+![alt text](https://raw.githubusercontent.com/sh969/Open-Seneca/master/documentation/pcb_v3/pcb-png)
 
 If you have built your kit and want to flash the code to the Black Pill board, here is how:
 
