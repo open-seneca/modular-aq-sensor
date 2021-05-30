@@ -1,18 +1,19 @@
-![alt text](https://raw.githubusercontent.com/sh969/Open-Seneca/master/documentation/logo.png)
+![alt text](https://raw.githubusercontent.com/sh969/integrated-aq-sensor/master/.images/logo.png)
 
 | PCB version | Code version | Name | Pilot date | Lifecycle |
 | :---: | :---: | :---: | :---: | :---: |
-| v3 | v10 | Europe 21 | Feb-21 | in production |
+| v3 | v10 | Europe 21 | current | in production |
 | v2 | v8/v9 | Kenya 20 | Mar-20 | in stock |
 | v1 | v7 | Argentina 19 | May-19 | discontinued |
 | v0 | v4 | CamBike sensor | Aug-18 | discontinued |
 
-We are currently working on v3 of our sensor for pilots in Stockholm, Lisbon, Scotland and Belo Horizonte in early 2021. This version will come with a range of components pre-assembled, will be smaller and easier to build.
+Please also refer to our current, smaller, and all-integrated air quality sensor kit which is also open-source on Github: 
+https://github.com/open-seneca/integrated-aq-sensor
 
 If you already have a sensor and want to upload and visualise your data you can create an account here:
 http://app.open-seneca.org
 
-![alt text](https://raw.githubusercontent.com/open-seneca/modular-aq-sensor/master/documentation/pcb_v3/pcb.png)
+![alt text](https://raw.githubusercontent.com/open-seneca/modular-aq-sensor/master/documentation/pcb_v2/photo_v9.jpeg)
 
 If you have built your kit and want to flash the code to the Black Pill board, here is how:
 
