@@ -1,4 +1,4 @@
-# This enclosure requires a laser-cut piece (see dwg above), a 4.3*1.2*1 inches size USB power bank (example below), and the junction box below.
+# This enclosure requires a laser-cut piece (see dwg above), a 4.3 x 1.2 x 1 inches size USB power bank, and a 158 x 90 x 60mm junction box (examples below).
 
 Aibocn Slim Power Bank 6700mAh Portable Charger
 ![alt text](https://images-na.ssl-images-amazon.com/images/I/519pum35i9L._AC_SL1280_.jpg)
