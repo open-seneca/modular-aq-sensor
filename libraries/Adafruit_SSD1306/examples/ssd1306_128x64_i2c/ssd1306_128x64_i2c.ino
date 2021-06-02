@@ -53,9 +53,12 @@ static const unsigned char PROGMEM logo_bmp[] =
   B00000000, B00110000 };
 
 void setup() {
+  pinMode(LED_BUILTIN,OUTPUT);
+  digitalWrite(LED_BUILTIN,HIGH);
   Serial.begin(9600);
   Serial.println("test");
   // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
+  digitalWrite(LED_BUILTIN,LOW);
   if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C, false, false)) { // Address 0x3D for 128x64
     Serial.println(F("SSD1306 allocation failed"));
     for(;;); // Don't proceed, loop forever

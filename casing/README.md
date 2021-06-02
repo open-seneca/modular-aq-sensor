@@ -1,5 +1,2 @@
-﻿## v9_Nairobi2020
-
-- v0 is the bare minimum size
-- v1 has space fore some extra modules
-- v2 accommodates a USB powerbank as well
+v8 box fits the ublox GPS which has been distribuetd in Nairobi 2020 on motorbikes
+v9 3d-printed enclosure fits the modular SIM868 GSM/GPS module (display visible) which has only been used for demonstration purposes

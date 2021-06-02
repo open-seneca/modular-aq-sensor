@@ -1,0 +1,1 @@
+Flash v8 for ublox version (junction box), v9 for GSM version (3d printed case)
