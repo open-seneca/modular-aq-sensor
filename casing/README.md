@@ -1,2 +1,2 @@
-v8 box fits the ublox GPS which has been distribuetd in Nairobi 2020 on motorbikes
-v9 3d-printed enclosure fits the modular SIM868 GSM/GPS module (display visible) which has only been used for demonstration purposes
+- v8 box fits the ublox GPS which has been distribuetd in Nairobi 2020 on motorbikes
+- v9 3d-printed enclosure fits the modular SIM868 GSM/GPS module (display visible) which has only been used for demonstration purposes
