@@ -1,5 +1,7 @@
 # This box requires a 3d-printer, a rectangular laser-cut sliding lid, and a powerbank (example below).
 
+SIM868 module supported.
+
 - v0 is the bare minimum size
 - v1 has space fore some extra modules
 - v2 accommodates a USB powerbank as well
